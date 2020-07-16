@@ -25,6 +25,7 @@ my_theme2 <- function()
 setwd("C:/Users/Tom/Dropbox/SERDP_Project/Pens/2019-2020_Experiments/")
 recaps <- read_excel("Recap_Database_2019-2020-Experiments_Master_20200125.xlsx", sheet=2,na=c("NA", ""))## recapture data
 penID <- read_excel("Pens_Assignments_2019-2020-Experiments.xlsx", na=c("NA", ""))
+final_fate <- read_excel("BreakdownFates_2019-2020-Experiments.xlsx", na=c("NA", ""))
 
 ## initial pen assignments
 
@@ -133,4 +134,29 @@ ggplot(ov_dat,aes(as.numeric(as.character(Period)),Freq,shape=Treatment,linetype
                                                          "3 Breeding, 3 Emigration"))+
   scale_x_continuous(breaks=seq(1,length(period_dates$dayMonth),1),labels=(period_dates$dayMonth))
 #dev.off()
+
+#final fate plots
+final_fate$Alive<-ifelse(grepl("alive",final_fate$Fate_notes),1,
+                         ifelse(grepl("Dead",final_fate$Fate_notes),0,NA))
+final_totals<-final_fate%>%
+  group_by(Juv.Treat,Species)%>%
+  count(Known_Fate)
+  
+amop_var<-final_totals%>%
+  filter(Juv.Treat%in%c("L1-J1","L3-J1","L1-J3","L3-J3"))
+
+ggplot(na.omit(amop_var),aes(Juv.Treat,n/8))+
+  geom_boxplot()+
+  my_theme2()+
+  scale_fill_manual(values=c("gray","black"),labels=c("Dead","Alive"))+
+  labs(y="Percent Recovered",x="Treatment")
+
+pe_var<-final_totals%>%
+  filter(Juv.Treat%in%c("Same-Time","AMAN-First","AMOP-First"))
+
+ggplot(na.omit(pe_var),aes(Juv.Treat,n/32,fill=Species))+
+  geom_boxplot()+
+  my_theme2()+
+  scale_fill_manual(values=c("gray","black"),labels=c("Dead","Alive"))+
+  labs(y="Percent Recovered",x="Treatment")
 
