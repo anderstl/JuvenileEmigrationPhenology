@@ -139,24 +139,34 @@ ggplot(ov_dat,aes(as.numeric(as.character(Period)),Freq,shape=Treatment,linetype
 final_fate$Alive<-ifelse(grepl("alive",final_fate$Fate_notes),1,
                          ifelse(grepl("Dead",final_fate$Fate_notes),0,NA))
 final_totals<-final_fate%>%
-  group_by(Juv.Treat,Species)%>%
-  count(Known_Fate)
+  group_by(Juv.Treat,Juv.Pen,Species)%>%
+  dplyr::summarise(Total=sum(Alive,na.rm=T))
   
 amop_var<-final_totals%>%
   filter(Juv.Treat%in%c("L1-J1","L3-J1","L1-J3","L3-J3"))
 
-ggplot(na.omit(amop_var),aes(Juv.Treat,n/8))+
-  geom_boxplot()+
+png("juv_opacvar_survival.png",res=600,height=5,width=5,units="in")
+ggplot(amop_var,aes(Juv.Treat,Total/8))+
+  geom_boxplot(fill="darkorchid2")+
   my_theme2()+
-  scale_fill_manual(values=c("gray","black"),labels=c("Dead","Alive"))+
-  labs(y="Percent Recovered",x="Treatment")
+  labs(y="Percent Recovered Alive",x="Treatment")+
+  lims(y=c(0,1))
+dev.off()
+Anova(glm(cbind(Total,8-Total)~Juv.Treat,data=amop_var,binomial))
 
 pe_var<-final_totals%>%
   filter(Juv.Treat%in%c("Same-Time","AMAN-First","AMOP-First"))
 
-ggplot(na.omit(pe_var),aes(Juv.Treat,n/32,fill=Species))+
+png("juv_pe_survival.png",res=600,height=5,width=5,units="in")
+ggplot(pe_var,aes(Juv.Treat,Total/4,fill=Species))+
   geom_boxplot()+
   my_theme2()+
-  scale_fill_manual(values=c("gray","black"),labels=c("Dead","Alive"))+
-  labs(y="Percent Recovered",x="Treatment")
+  scale_fill_manual(values=c("goldenrod","darkorchid2"),labels=c("Ringed","Marbled"))+
+  labs(y="Percent Recovered Alive",x="Treatment")+
+  lims(y=c(0,1))+
+  scale_x_discrete(labels=c("Ringed First","Marbled First","Same Time"))+
+  theme(legend.position = "top",legend.direction = "horizontal")
+dev.off()
+
+Anova(glm(cbind(Total,4-Total)~Juv.Treat+Species,data=pe_var,binomial))
 
