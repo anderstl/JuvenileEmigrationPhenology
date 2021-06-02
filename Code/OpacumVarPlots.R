@@ -62,12 +62,10 @@ ao_penID1<-ao_penID%>%
 ao_penID1<-ao_penID1%>%
   mutate_if(sapply(ao_penID1, is.character), as.factor)
 
-ao_df <- merge(ao_recaps, ao_penID1, by=c("PIT_Tag"),all=T)
+ao_df <- merge(ao_recaps, ao_penID1, by=c("PIT_Tag","Species"),all=T)
 
 ## Summarize/Visualize Data:
 ## -------------------------
-head(df)
-
 
 ## Plot Recap Data by Opacum Variation Treatment
 ao_alive <- ao_df%>%
@@ -129,6 +127,23 @@ ggplot(ao_totals,aes(Juv.Treat,Total/9))+
 dev.off()
 
 car::Anova(glm(cbind(Total,9-Total)~Juv.Treat,data=ao_totals,binomial))
+
+## Plot Growth:
+## ---------------
+
+ggplot(data=ao_alive, aes(x=as.numeric(as.character(Period)), y=Mass_g, color=Juv.Treat, group=PIT_Tag,linetype=Juv.Treat,shape=Juv.Treat))+
+  geom_line() + 
+  theme_classic() +
+  scale_shape_manual(values=c(16,17,1,2), name="Phenology Treatment") +
+  scale_linetype_manual(values=1:4, name="Phenology Treatment") +
+  scale_x_continuous(breaks=seq(1,length(period_dates$dayMonth),1),labels=(period_dates$dayMonth))+
+  scale_color_manual(values=cbbPalette, name="Phenology Treatment") +
+  geom_point(size=3)+
+  ylab("Mass (g)") + xlab("Recapture Date") +
+  theme(legend.position=c(0.4 ,0.75),axis.text.x = element_text(angle=45,hjust=1)) 
+
+
+## ---------------
 
 
 #plot sex by size at metamorphosis

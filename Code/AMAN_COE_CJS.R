@@ -30,21 +30,13 @@
 
 ## Set Directories and Import Data:
 ## --------------------------------
-  # setwd("C:/Users/jjbxb3/Box Sync/FLW_Phenology/Terrestrial_Pens/Aa_COE_2018-19/")
-  # recaps <- read.csv("C:/Users/jjbxb3/Dropbox/SERDP_Phenology/Pens/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
-  # weather <- read_excel("C:/Users/jjbxb3/Dropbox/SERDP_Phenology/Pens/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
-
-  # setwd("C:/Users/Jacob/Box Sync/FLW_Phenology/Terrestrial_Pens/Aa_COE_2018-19/")
-  # recaps <- read.csv("C:/Users/Jacob/Dropbox/SERDP_Phenology/Pens/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
-  # weather <- read_excel("C:/Users/Jacob/Dropbox/SERDP_Phenology/Pens/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
-
-  setwd("C:/Users/Tom/DropBox/SERDP_Project/Pens/2018-2019_Experiment/")
-  recaps <- read.csv("AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
-  weather <- read_excel("AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
   
-  assign <- read_excel("Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
-  treats <- read.csv("Aa_COEffects_Treatments.csv", header=T)           ## treatment data
-  tagged <- read_excel("Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
+  aa_recaps <- read.csv("Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
+  aa_weather <- read_excel("Data/AMAN/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
+  
+  aa_assign <- read_excel("Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
+  aa_treats <- read.csv("Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
+  aa_tagged <- read_excel("Data/AMAN/Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
 ## --------------------------------
 
 
@@ -52,84 +44,84 @@
 ## ------------------
   doy.adj <- 172                           ## DOY value to standardize values to
   
-  recaps <- subset(recaps, recaps$Notes != "Arianne Salamander")
-  recaps$DOY <- as.numeric(format(as.Date(as.character(recaps$Recap_Date),"%m/%d/%Y"),"%j"))
-    recaps$DOY_adj <- ifelse(recaps$DOY >= doy.adj, yes=recaps$DOY-(doy.adj-1), no=recaps$DOY+(365-doy.adj+1))
-  recaps$Rel.DOY <- as.numeric(format(as.Date(as.character(recaps$Release),"%m/%d/%Y"),"%j"))
-    recaps$Rel.DOY_adj <- ifelse(recaps$Rel.DOY >= doy.adj, yes=recaps$Rel.DOY-(doy.adj-1), no=recaps$Rel.DOY+(365-doy.adj+1))
+  aa_recaps <- subset(aa_recaps, recaps$Notes != "Arianne Salamander")
+  aa_recaps$DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Recap_Date),"%m/%d/%Y"),"%j"))
+  aa_recaps$DOY_adj <- ifelse(aa_recaps$DOY >= doy.adj, yes=aa_recaps$DOY-(doy.adj-1), no=recaps$DOY+(365-doy.adj+1))
+    aa_recaps$Rel.DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Release),"%m/%d/%Y"),"%j"))
+    aa_recaps$Rel.DOY_adj <- ifelse(aa_recaps$Rel.DOY >= doy.adj, yes=aa_recaps$Rel.DOY-(doy.adj-1), no=recaps$Rel.DOY+(365-doy.adj+1))
   
-  recaps$Recap_Loc <- as.character(recaps$Recap_Loc)
+    aa_recaps$Recap_Loc <- as.character(aa_recaps$Recap_Loc)
   
-  recaps$Re.Block <- NULL
-  recaps$Re.Pen <- NULL
-  recaps$Re.Micro <- NULL
+    aa_recaps$Re.Block <- NULL
+    aa_recaps$Re.Pen <- NULL
+    aa_recaps$Re.Micro <- NULL
   
-  for(i in 1:dim(recaps)[1]) {
-    recaps$Re.Block[i] <- unlist(strsplit(recaps$Recap_Loc[i], ","))[1]
-    recaps$Re.Pen[i] <- unlist(strsplit(recaps$Recap_Loc[i], ","))[2]
-    recaps$Re.Micro[i] <- unlist(strsplit(recaps$Recap_Loc[i], ","))[3]
+  for(i in 1:dim(aa_recaps)[1]) {
+    aa_recaps$Re.Block[i] <- unlist(strsplit(aa_recaps$Recap_Loc[i], ","))[1]
+    aa_recaps$Re.Pen[i] <- unlist(strsplit(aa_recaps$Recap_Loc[i], ","))[2]
+    aa_recaps$Re.Micro[i] <- unlist(strsplit(aa_recaps$Recap_Loc[i], ","))[3]
   }
   
-  weather$DOY <- as.numeric(format(as.Date(as.character(weather$DATE), "%m/%d/%Y"), "%j"))
-    weather$DOY_adj <- ifelse(weather$DOY >= doy.adj, yes=weather$DOY-(doy.adj-1), no=ifelse(weather$DOY < 152, yes=weather$DOY+(365-doy.adj+1), no=weather$DOY-(doy.adj-1)))
+    aa_weather$DOY <- as.numeric(format(as.Date(as.character(aa_weather$DATE), "%m/%d/%Y"), "%j"))
+    aa_weather$DOY_adj <- ifelse(aa_weather$DOY >= doy.adj, yes=aa_weather$DOY-(doy.adj-1), no=ifelse(aa_weather$DOY < 152, yes=aa_weather$DOY+(365-doy.adj+1), no=aa_weather$DOY-(doy.adj-1)))
   
-  assign$Release_DOY <- as.numeric(format(as.Date(as.character(assign$Release_Date), "%Y-%m-%d"),"%j"))
-    assign$DOY_adj <- ifelse(assign$Release_DOY >= doy.adj, yes=assign$Release_DOY-(doy.adj-1), no=assign$Release_DOY+(365-doy.adj+1))
+    aa_assign$Release_DOY <- as.numeric(format(as.Date(as.character(aa_assign$Release_Date), "%Y-%m-%d"),"%j"))
+    aa_assign$DOY_adj <- ifelse(aa_assign$Release_DOY >= doy.adj, yes=aa_assign$Release_DOY-(doy.adj-1), no=aa_assign$Release_DOY+(365-doy.adj+1))
   
-  tagged$Meta.DOY <- as.numeric(format(as.Date(as.character(tagged$Meta.Date), "%Y-%m-%d"),"%j"))
-    tagged$Meta.DOY_adj <- ifelse(tagged$Meta.DOY >= doy.adj, yes=tagged$Meta.DOY-(doy.adj-1), no=tagged$Meta.DOY+(365-doy.adj+1))
-  tagged$Tag.DOY <- as.numeric(format(as.Date(as.character(tagged$Tag.Date), "%Y-%m-%d"),"%j"))
-    tagged$Tag.DOY_adj <- ifelse(tagged$Tag.DOY >= doy.adj, yes=tagged$Tag.DOY-(doy.adj-1), no=tagged$Tag.DOY+(365-doy.adj+1))
+    aa_tagged$Meta.DOY <- as.numeric(format(as.Date(as.character(aa_tagged$Meta.Date), "%Y-%m-%d"),"%j"))
+    aa_tagged$Meta.DOY_adj <- ifelse(aa_tagged$Meta.DOY >= doy.adj, yes=aa_tagged$Meta.DOY-(doy.adj-1), no=aa_tagged$Meta.DOY+(365-doy.adj+1))
+    aa_tagged$Tag.DOY <- as.numeric(format(as.Date(as.character(aa_tagged$Tag.Date), "%Y-%m-%d"),"%j"))
+    aa_tagged$Tag.DOY_adj <- ifelse(aa_tagged$Tag.DOY >= doy.adj, yes=aa_tagged$Tag.DOY-(doy.adj-1), no=aa_tagged$Tag.DOY+(365-doy.adj+1))
   
-  df.a <- merge(assign, tagged, by="PIT_Tag", type="left")
-  df <- merge(recaps, df.a, by="PIT_Tag", type="left")
+  df.a <- merge(aa_assign, aa_tagged, by="PIT_Tag", type="left")
+  aa_df <- merge(aa_recaps, df.a, by="PIT_Tag", type="left")
   
-  df$Moved <- ifelse(is.na(df$Moved)==T, yes=0, no=df$Moved)
-  df$Pre.Alive <- df$Moved + df$Pre_Alive
-  df$Pre.Alive <- ifelse(df$Pre.Alive >= 1, yes=1, no=0)
+  aa_df$Moved <- ifelse(is.na(aa_df$Moved)==T, yes=0, no=aa_df$Moved)
+  aa_df$Pre.Alive <- aa_df$Moved + aa_df$Pre_Alive
+  aa_df$Pre.Alive <- ifelse(aa_df$Pre.Alive >= 1, yes=1, no=0)
   
   ## create a matrix of zeros with # inds X # periods dimensions
   ## loop over individuals, populate the cells with data
   ## concatenate data on the back end to create the capture history cells
   
   ## Create Capture History Matrix (messy... needs cleaned later)
-    ch.pa <- matrix(0, nrow=dim(assign)[1], ncol=max(as.numeric(recaps$Period), na.rm=T)+5)
-    ch.pa <- as.data.frame(ch.pa)
-    colnames(ch.pa)[1:4] <- c("PIT_Tag", "Treatment", "Block", "Pen")
-      ch.pa$PIT_Tag <- assign$PIT_Tag
-      ch.pa$Treatment <- assign$Treatment
-      ch.pa$Block <- assign$Block
-      ch.pa$Pen <- assign$Pen
-    ch.pa[,5] <- 1
+  aa_ch.pa <- matrix(0, nrow=dim(aa_assign)[1], ncol=max(as.numeric(aa_recaps$Period), na.rm=T)+5)
+  aa_ch.pa <- as.data.frame(aa_ch.pa)
+    colnames(aa_ch.pa)[1:4] <- c("PIT_Tag", "Treatment", "Block", "Pen")
+    aa_ch.pa$PIT_Tag <- aa_assign$PIT_Tag
+    aa_ch.pa$Treatment <- aa_assign$Treatment
+    aa_ch.pa$Block <- aa_assign$Block
+    aa_ch.pa$Pen <- aa_assign$Pen
+    aa_ch.pa[,5] <- 1
   
-    recaps$Moved <- ifelse(is.na(recaps$Moved)==T, yes=0, no=recaps$Moved)
+    aa_recaps$Moved <- ifelse(is.na(aa_recaps$Moved)==T, yes=0, no=aa_recaps$Moved)
    
     # recaps$Visual <- ifelse(recaps$Visual == 2, yes=0, no=recaps$Visual)          
-    recaps$Pre.Alive <- recaps$Moved + recaps$Pre_Alive
-    recaps$Pre.Alive <- ifelse(recaps$Pre.Alive >= 1, yes=1, no=0)
+    aa_recaps$Pre.Alive <- aa_recaps$Moved + aa_recaps$Pre_Alive
+    aa_recaps$Pre.Alive <- ifelse(aa_recaps$Pre.Alive >= 1, yes=1, no=0)
     
-    ag.recaps <- aggregate(recaps$Pre.Alive, by=list(recaps$PIT_Tag, recaps$Period), FUN='sum')
+    ag.recaps <- aggregate(aa_recaps$Pre.Alive, by=list(aa_recaps$PIT_Tag, aa_recaps$Period), FUN='sum')
     colnames(ag.recaps) <- c("PIT_Tag", "Period", "Nobs")
     ag.recaps$Pre.Alive <- ag.recaps$Nobs
     ag.recaps$Pre.Alive <- ifelse(ag.recaps$Pre.Alive >= 1, yes=1, no=ag.recaps$Pre.Alive)
     
-    for(i in 1:dim(ch.pa)[1]){
-      ind <- ch.pa$PIT_Tag[i]
+    for(i in 1:dim(aa_ch.pa)[1]){
+      ind <- aa_ch.pa$PIT_Tag[i]
       sdf <- subset(ag.recaps, ag.recaps$PIT_Tag == ind)
       
       if(dim(sdf)[1]>0){
-        for(c in 6:dim(ch.pa)[2]){
+        for(c in 6:dim(aa_ch.pa)[2]){
           for(s in 1:dim(sdf)[1]){
             p <- sdf$Period[s]
             if((c-5) == p){
-              ch.pa[i,c] <- sdf$Pre.Alive[s]
+              aa_ch.pa[i,c] <- sdf$Pre.Alive[s]
             }
           }
         }
       }
     }
     
-    CH <- as.matrix(ch.pa[,5:dim(ch.pa)[2]])            ## isolate capture history matrix data only. 
+    aa_CH <- as.matrix(aa_ch.pa[,5:dim(aa_ch.pa)[2]])            ## isolate capture history matrix data only. 
    
     
   ## Ignore for now -- converts from Arianne's data file format. Given my raw data format, I do not need these. 
@@ -141,89 +133,6 @@
     # CH <- t(array(as.numeric(unlist(strsplit(ch$cap.hist,""))),dim=c(nchar(ch$cap.hist[1]),length(ch$PIT_Tag))))
 
 ## ------------------
-
-
-## Summarize/Visualize Data:
-## -------------------------
-  head(df)
-    
-  j.int <- aggregate(recaps$DOY_adj, by=list(recaps$Period), FUN="max", na.rm=T)[2]
-  weather$Period <- ifelse(weather$DOY_adj <= j.int[1,], yes="I01", 
-                           no=ifelse(weather$DOY_adj > j.int[1,] & weather$DOY_adj <= j.int[2,], yes="I02", 
-                                     no=ifelse(weather$DOY_adj > j.int[2,] & weather$DOY_adj <= j.int[3,], yes="I03", 
-                                               no=ifelse(weather$DOY_adj > j.int[3,] & weather$DOY_adj <= j.int[4,], yes="I04", 
-                                                         no=(ifelse(weather$DOY_adj > j.int[4,] & weather$DOY_adj <= j.int[5,], yes="I05", 
-                                                                    no=ifelse(weather$DOY_adj > j.int[5,] & weather$DOY_adj <= j.int[6,], yes="I06", 
-                                                                              no=ifelse(weather$DOY_adj > j.int[6,] & weather$DOY_adj <= j.int[7,], yes="I07", 
-                                                                                        no=ifelse(weather$DOY_adj > j.int[7,] & weather$DOY_adj <= j.int[8,], yes="I08", 
-                                                                                                  no=ifelse(weather$DOY_adj > j.int[8,] & weather$DOY_adj <= j.int[9,], yes="I09", 
-                                                                                                            no=ifelse(weather$DOY_adj > j.int[9,] & weather$DOY_adj <= j.int[10,], yes="I10", 
-                                                                                                                      no=ifelse(weather$DOY_adj > j.int[10,] & weather$DOY_adj <= j.int[11,], yes="I11", 
-                                                                                                                                no=ifelse(weather$DOY_adj > j.int[11,] & weather$DOY_adj <= j.int[12,], yes="I12", 
-                                                                                                                                          no=ifelse(weather$DOY_adj > j.int[12,] & weather$DOY_adj <= j.int[13,], yes="I13", 
-                                                                                                                                                    no=ifelse(weather$DOY_adj > j.int[13,] & weather$DOY_adj <= j.int[14,], yes="I14", 
-                                                                                                                                                              no=ifelse(weather$DOY_adj > j.int[14,] & weather$DOY_adj <= j.int[15,], yes="I15", 
-                                                                                                                                                                        no=ifelse(weather$DOY_adj > j.int[15,] & weather$DOY_adj <= j.int[16,], yes="I16", 
-                                                                                                                                                                                  no=ifelse(weather$DOY_adj > j.int[16,] & weather$DOY_adj <= j.int[17,], yes="I17",no=NA
-                                                                                                                                                                                    ))))))))))))))))))
-  
-  wet.df <- group_by(weather, Period) %>%
-            summarise(
-              N.days = n(),
-              Temp.Avg = mean(AVG_ATEMP_C, na.rm=T),
-              Temp.Min = min(MIN_ATEMP_C, na.rm=T),
-              Temp.Max = max(MAX_ATEMP_C, na.rm=T),
-              Precp.mm = sum(TOT_PREC_MM, na.rm=T), 
-              SMois.2in = mean(SOIL_MOIS_2in_VWC, na.rm=T), 
-              SMois.4in = mean(SOIL_MOIS_4in_VWC, na.rm=T),
-              SMois.8in = mean(SOIL_MOIS_8in_VWC, na.rm=T),
-              SMois.20in = mean(SOIL_MOIS_20in_VWC, na.rm=T),
-              SMois.40in = mean(SOIL_MOIS_40in_VWC, na.rm=T), 
-              Solar.Rad = mean(TOT_SOL_RAD_MJpM2, na.rm=T)
-            )
-  
-  ## Visualize some data
-    par(mfrow=c(2,1))
-    
-    ## Plot Temperature Data
-    plot(weather$DOY_adj[21:365], weather$AVG_ATEMP_C[21:365], type="b", xlab="", ylab="Temperature (C)", ylim=c(round(min(weather$MIN_ATEMP_C), 0)-1, round(max(weather$MAX_ATEMP_C), 0)+1))
-    points(weather$DOY_adj[21:365], weather$AVG_ATEMP_C[21:365], col=as.factor(weather$Period[21:365]), pch=16)
-    lines(weather$DOY_adj[21:365], weather$MIN_ATEMP_C[21:365], lty=2, col="dark grey")
-    lines(weather$DOY_adj[21:365], weather$MAX_ATEMP_C[21:365], lty=2, col="dark grey")
-    
-    ## Plot Daily Precipitation Data
-    plot(weather$DOY_adj[21:365], weather$TOT_PREC_MM[21:365], type="b", xlab="", ylab="Total Daily Precipitation (mm)")
-    points(weather$DOY_adj[21:365], weather$TOT_PREC_MM[21:365], col=as.factor(weather$Period[21:365]), pch=16)
-  
-    ## Plot Recap Data by Treatment
-    temp <- subset(recaps, (Visual==1 & is.na(Mass_g)==F) | Moved == 1)
-    temp <- subset(temp, Species == "AMAN")
-    r.df <- merge(temp, treats, by.x=c("Re.Block", "Re.Pen"), by.y=c("Block", "Pen"), all.x = T)
-    r.df$Treatment <- as.factor(r.df$Treat.abrv)
-    
-    r.plot <- as.data.frame(table(r.df$Period, r.df$Treatment))
-    colnames(r.plot) <- c("Period", "Treatment", "Freq")  
-    r.plot$RGB <- ifelse(r.plot$Treatment == "L1J1", yes="#e66101", ##light orange
-                         no=ifelse(r.plot$Treatment == "L1J3", yes="#fdb863",  ## dark orange
-                                   no=ifelse(r.plot$Treatment == "L3J1", yes="#5e3c99",  ##lavendar 
-                                             no="#b2abd2")))  ##dark purple
-    
-    r.plot$Phenology.Treatments <- ifelse(r.plot$Treatment == 1.1, yes="1 Breeding, 1 Emigration Date", ##light orange
-                                          no=ifelse(r.plot$Treatment == 1.3, yes="1 Breeding, 3 Emigration Dates",  ## dark orange
-                                                    no=ifelse(r.plot$Treatment == 3.1, yes="3 Breeding, 1 Emigration Dates",  ##lavendar 
-                                                              no="3 Breeding, 3 Emigration Dates")))  ##dark purple
-    
-    par(mfrow=c(1,1))
-    plot(as.numeric(as.character(r.plot$Period[which(r.plot$Treatment=="1.1")]))-0.20, r.plot$Freq[which(r.plot$Treatment=="1.1")], xlim=c(1, 16), ylim=c(0,41), type="b", lwd=1, col="#8c510a", pch=16, 
-         xlab="Recapture Period", ylab="Number of Recaps (Brown & Teal Lines) \n Total Precip (cm) Between Surveys (Blue Line)", mgp=c(1.8,0.8,0))
-    lines(as.numeric(as.factor(wet.df$Period))[1:16], wet.df$Precp.mm[1:16]/10, pch=8, cex=1.5, lwd=1.5, col="blue", type="b", lty=3)                          ## rainfall accumulation in cm 
-    lines(as.numeric(as.character(r.plot$Period[which(r.plot$Treatment=="1.3")]))-0.10, r.plot$Freq[which(r.plot$Treatment=="1.3")], col="#d8b365", type="b", lwd=1, pch=16)
-    lines(as.numeric(as.character(r.plot$Period[which(r.plot$Treatment=="3.1")]))+0.10, r.plot$Freq[which(r.plot$Treatment=="3.1")], col="#01665e", type="b", lwd=1, pch=17, lty=2)
-    lines(as.numeric(as.character(r.plot$Period[which(r.plot$Treatment=="3.3")]))+0.20, r.plot$Freq[which(r.plot$Treatment=="3.3")], col="#5ab4ac", type="b", lwd=1, pch=17, lty=2)
-    
-  ## -------------------------
-
-
     ## Analyze Survival:
     ## -----------------
     # Initial values
@@ -258,14 +167,14 @@
     }
     
     # Create group variable
-    group <- as.factor(ch.pa$Treatment)
+    group <- as.factor(aa_ch.pa$Treatment)
     
-    group.L <- character(length = dim(ch.pa)[1])      ## breeding phenology group
-    group.J <- character(length = dim(ch.pa)[1])      ## emigration phenology group
+    group.L <- character(length = dim(aa_ch.pa)[1])      ## breeding phenology group
+    group.J <- character(length = dim(aa_ch.pa)[1])      ## emigration phenology group
     
-    for(i in 1:dim(ch.pa)[1]){
-      group.L[i] <- unlist(strsplit(ch.pa$Treatment[i], "(?<=.{2})", perl=T))[[1]]
-      group.J[i] <- unlist(strsplit(ch.pa$Treatment[i], "(?<=.{2})", perl=T))[[2]]
+    for(i in 1:dim(aa_ch.pa)[1]){
+      group.L[i] <- unlist(strsplit(aa_ch.pa$Treatment[i], "(?<=.{2})", perl=T))[[1]]
+      group.J[i] <- unlist(strsplit(aa_ch.pa$Treatment[i], "(?<=.{2})", perl=T))[[2]]
     }
     
     group.L <- as.factor(group.L)
@@ -273,7 +182,7 @@
     
     # Create vector with occasion of marking
     get.first <- function(x) min(which(x!=0))
-    f <- apply(CH, 1, get.first)
+    f <- apply(aa_CH, 1, get.first)
     
     ## Fixed group effects
     ## -------------------
@@ -286,40 +195,40 @@
         
         # Priors and constraints
         for (i in 1:nind){
-        for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- phi.g[group[i]]
-        p[i,t] <- p.g[group[i]]
-        } #t
+          for (t in f[i]:(n.occasions-1)){
+            phi[i,t] <- phi.g[group[i]]
+            p[i,t] <- p.g[group[i]]
+          } #t
         } #i
         
         for (u in 1:g){
-        phi.g[u] ~ dunif(0, 1)              # Priors for group-specific survival
-        p.g[u] ~ dunif(0, 1)                # Priors for group-specific recapture
+          phi.g[u] ~ dunif(0, 1)              # Priors for group-specific survival
+          p.g[u] ~ dunif(0, 1)                # Priors for group-specific recapture
         }
         
         # Likelihood 
         for (i in 1:nind){
-        # Define latent state at first capture
-        z[i,f[i]] <- 1
+          # Define latent state at first capture
+          z[i,f[i]] <- 1
         
-        for (t in (f[i]+1):n.occasions){
-        # State process
-        z[i,t] ~ dbern(mu1[i,t])
-        mu1[i,t] <- phi[i,t-1] * z[i,t-1]
-        # Observation process
-        y[i,t] ~ dbern(mu2[i,t])
-        mu2[i,t] <- p[i,t-1] * z[i,t]
-        } #t
-        } #i
+          for (t in (f[i]+1):n.occasions){
+          # State process
+            z[i,t] ~ dbern(mu1[i,t])
+            mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+          # Observation process
+            y[i,t] ~ dbern(mu2[i,t])
+            mu2[i,t] <- p[i,t-1] * z[i,t]
+            } #t
+          } #i
         }
         ",fill = TRUE)
     sink()
     
     # Bundle data
-    jags.data <- list(y = CH, f = f, nind = dim(CH)[1], n.occasions = dim(CH)[2], z = known.state.cjs(CH), g = length(unique(group)), group = as.numeric(group))
+    aa_jags.data <- list(y = aa_CH, f = f, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], z = known.state.cjs(aa_CH), g = length(unique(group)), group = as.numeric(group))
     
     # Initial values
-    inits <- function(){list(z = cjs.init.z(CH, f), phi.g = runif(length(unique(group)), 0, 1), p.g = runif(length(unique(group)), 0, 1))}  
+    inits <- function(){list(z = cjs.init.z(aa_CH, f), phi.g = runif(length(unique(group)), 0, 1), p.g = runif(length(unique(group)), 0, 1))}  
     
     # Parameters monitored
     parameters <- c("phi.g", "p.g")
@@ -331,7 +240,7 @@
     nc <- 3
     
     ## Call JAGS from R (BRT 2 min)
-    cjs.group <- jagsUI(jags.data, inits, parameters, "cjs-group.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+    cjs.group <- jagsUI(aa_jags.data, inits, parameters, "cjs-group.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
     
     ## Summarize posteriors
     print(cjs.group, digits = 3)
@@ -395,19 +304,19 @@
     sink()
     
     # Bundle data -- Larvae
-    jags.data.L <- list(y=CH, f=f, nind=dim(CH)[1], n.occasions=dim(CH)[2], z=known.state.cjs(CH),
+    jags.data.L <- list(y=aa_CH, f=f, nind=dim(aa_CH)[1], n.occasions=dim(aa_CH)[2], z=known.state.cjs(aa_CH),
                         g=length(unique(group.L)), group=as.numeric(group.L))
     
     # Initial values -- Larvae
-    inits.L <- function(){list(z=cjs.init.z(CH, f), gamma=rnorm(dim(CH)[2]-1), beta=c(NA, rnorm(1)),
+    inits.L <- function(){list(z=cjs.init.z(aa_CH, f), gamma=rnorm(dim(aa_CH)[2]-1), beta=c(NA, rnorm(1)),
                                p.g=runif(length(unique(group.L)), 0, 1))}
     
     # Bundle data -- Juveniles
-    jags.data.J <- list(y=CH, f=f, nind=dim(CH)[1], n.occasions=dim(CH)[2], z=known.state.cjs(CH), 
+    jags.data.J <- list(y=aa_CH, f=f, nind=dim(aa_CH)[1], n.occasions=dim(aa_CH)[2], z=known.state.cjs(aa_CH), 
                         g=length(unique(group.J)), group=as.numeric(group.J))
     
     # Initial values -- Juveniles
-    inits.J <- function(){list(z=cjs.init.z(CH, f), gamma=rnorm(dim(CH)[2]-1), beta=c(NA, rnorm(1)),
+    inits.J <- function(){list(z=cjs.init.z(aa_CH, f), gamma=rnorm(dim(aa_CH)[2]-1), beta=c(NA, rnorm(1)),
                                p.g=runif(length(unique(group.J)), 0, 1))}  
     
     
@@ -416,9 +325,9 @@
     
     
     ## MCMC settings
-    ni <- 50000
+    ni <- 5000
     nt <- 10
-    nb <- 25000
+    nb <- 2500
     nc <- 3
     
     # Call JAGS from R (BRT 7 min)
@@ -479,14 +388,14 @@
     #png("AaCOE_Apparent-Survival-Prob_2-group.png", width=5, height=5, units='in', res=600)         
     
     plot(lty=2, xlim=c(1,16), bty="n", cex=1.5, axes=FALSE, 
-         x=(1:(dim(CH)[2]-1))-0.1, y=cjs.add.J$mean$phi.g1, type="b", col="#e08214", pch=16,
+         x=(1:(dim(aa_CH)[2]-1))-0.1, y=cjs.add.J$mean$phi.g1, type="b", col="#e08214", pch=16,
          #x=(1:(dim(CH)[2]-1))-0.1, y=cjs.add.L$mean$phi.g1, type="b", col="#542788", pch=16,
          ylim=c(0,1.0), ylab="Apparent Survival (%)", xlab = "Recapture Event")
     axis(1, at=1:16, labels=rep(NA,17), tcl= -0.25)
     axis(1, at=seq(2,16,2), labels=c("2","4","6","8","10","12","14","16"))
     axis(2, at=seq(0,1,0.1), labels=c("0.0",NA,"0.2",NA,"0.4",NA,"0.6",NA,"0.8",NA,"1.0"), las=1)
-    points(x=(1:(dim(CH)[2]-1))+0.1, y=cjs.add.J$mean$phi.g2, type="b", pch=17, lty=1, lwd=1.5, col="#fdb863", cex=1.5)
-    #points(x=(1:(dim(CH)[2]-1))+0.1, y=cjs.add.L$mean$phi.g2, type="b", pch=17, lty=1, lwd=1.5, col="#8073ac", cex=1.5)
+    points(x=(1:(dim(aa_CH)[2]-1))+0.1, y=cjs.add.J$mean$phi.g2, type="b", pch=17, lty=1, lwd=1.5, col="#fdb863", cex=1.5)
+    points(x=(1:(dim(aa_CH)[2]-1))+0.1, y=cjs.add.L$mean$phi.g2, type="b", pch=17, lty=1, lwd=1.5, col="#8073ac", cex=1.5)
     
     legend(12, 0.25, lty=c(1,2), box.lty=0, title="Phenology Treatment",
            #pch=c(16, 17), col=c("#e08214","#fdb863"), legend=c("1 Breeding Date", "3 Breeding Dates"))
@@ -495,8 +404,8 @@
     # points(as.numeric(as.factor(w.df$Period))[1:16]-0.5, w.df$Precp.mm[1:16]/100, pch=8, cex=1.5, lwd=1.5, col="blue") #, type="b", lty=3)              ## rainfall accumulation in decimeter 
     # axis(4, at=seq(0, 1.4, 0.1), labels=c("0", NA, "2", NA, "4", NA, "6", NA, "8", NA, "10", NA, "12", NA, "14"), las=1)      ## add axis for rainfall
     
-    segments((1:(dim(CH)[2]-1))-0.1, lphi.g1, (1:(dim(CH)[2]-1))-0.1, uphi.g1, col="#e08214")
-    segments((1:(dim(CH)[2]-1))+0.1, lphi.g2, (1:(dim(CH)[2]-1))+0.1, uphi.g2, col="#fdb863")
+    segments((1:(dim(aa_CH)[2]-1))-0.1, lphi.g1, (1:(dim(aa_CH)[2]-1))-0.1, uphi.g1, col="#e08214")
+    segments((1:(dim(aa_CH)[2]-1))+0.1, lphi.g2, (1:(dim(aa_CH)[2]-1))+0.1, uphi.g2, col="#fdb863")
     #segments((1:(dim(CH)[2]-1))-0.1, lphi.g3, (1:(dim(CH)[2]-1))-0.1, uphi.g3, col="#542788")
     #segments((1:(dim(CH)[2]-1))+0.1, lphi.g4, (1:(dim(CH)[2]-1))+0.1, uphi.g4, col="#8073ac")
     dev.off()  
@@ -528,12 +437,12 @@
     
     plot(type="b", pch=16, lty=2, ylim=c(0,100), ylab="Estimated Number Surviving", xlab="Recapture Event", bty="n", cex=1.5, axes=FALSE,
          # x=(0:(dim(CH)[2]-1))-0.1, y=J1.pred, col="#e08214")   ## 1 date juveniles
-         x=(0:(dim(CH)[2]-1))-0.1, y=J1.pred, col="#542788")   ## 1 date larvae
+         x=(0:(dim(aa_CH)[2]-1))-0.1, y=J1.pred, col="#542788")   ## 1 date larvae
     axis(1, at=0:16, labels=rep(NA,17), tcl= -0.25)
     axis(1, at=seq(0,16,2), labels=c("0","2","4","6","8","10","12","14","16"))
     axis(2, at=seq(0,100,10), labels=c("0",NA,"20",NA,"40",NA,"60",NA,"80",NA,"100"), las=1)
     # points(x=(0:(dim(CH)[2]-1))+0.1, y=L3.pred, type="b", pch=17, lty=1, col="#fdb863", cex=1.5)
-    points(x=(0:(dim(CH)[2]-1))+0.1, y=J3.pred, type="b", pch=17, lty=1, col="#8073ac", cex=1.5)
+    points(x=(0:(dim(aa_CH)[2]-1))+0.1, y=J3.pred, type="b", pch=17, lty=1, col="#8073ac", cex=1.5)
     
     legend(12, 95, lty=c(1,2), box.lty=0, title="Phenology Treatment",
            # pch=c(16, 17), col=c("#e08214","#fdb863"), legend=c("1 Breeding Date", "3 Breeding Dates"))
@@ -867,86 +776,3 @@
 ## -----------------
 
 
-## Analyze Growth:
-## ---------------
-  ## Plot Recaps
-    temp <- subset(recaps, (Visual==1 & is.na(Mass_g)==F) | Moved == 1)
-    temp <- subset(temp, Species == "AMAN")
-    r.df <- merge(temp, treats, by.x=c("Re.Block", "Re.Pen"), by.y=c("Block", "Pen"), all.x = T)
-    r.df$Treatment <- as.factor(r.df$Treat.abrv)
-    
-    r.plot <- as.data.frame(table(r.df$Period, r.df$Treatment))
-    colnames(r.plot) <- c("Period", "Treatment", "Freq")  
-    r.plot$RGB <- ifelse(r.plot$Treatment == "L1J1", yes="#e66101", ##light orange
-                         no=ifelse(r.plot$Treatment == "L1J3", yes="#fdb863",  ## dark orange
-                                   no=ifelse(r.plot$Treatment == "L3J1", yes="#5e3c99",  ##lavendar 
-                                             no="#b2abd2")))  ##dark purple
-    
-    r.plot$Phenology.Treatments <- ifelse(r.plot$Treatment == 1.1, yes="1 Breeding, 1 Emigration", ##light orange
-                                          no=ifelse(r.plot$Treatment == 1.3, yes="1 Breeding, 3 Emigration",  ## dark orange
-                                                    no=ifelse(r.plot$Treatment == 3.1, yes="3 Breeding, 1 Emigration",  ##lavendar 
-                                                              no="3 Breeding, 3 Emigration")))  ##dark purple
-    period_dates<-recaps%>%
-      group_by(as.numeric(as.character(Period)))%>%
-      summarise(FirstDate=min(as.Date(Recap_Date,format="%m/%d/%Y")))
-    period_dates<-na.omit(period_dates) #why is there an NA for June 7?
-    period_dates$dayMonth<-format(as.Date(as.character(period_dates$FirstDate),"%Y-%m-%d"),"%d-%b")#calculate Julian Date
-    
-    p <- ggplot(data=r.plot, aes(x=Period, y=Freq, color=Phenology.Treatments, group=Phenology.Treatments,linetype=Phenology.Treatments,shape=Phenology.Treatments))+
-      geom_line(size=1.5) + 
-      my_theme2() +
-      scale_shape_manual(values=c(16,17,1,2), name="Phenology Treatment") +
-      scale_linetype_manual(values=1:4, name="Phenology Treatment") +
-      scale_x_discrete(breaks=seq(1,length(period_dates$dayMonth),1),labels=(period_dates$dayMonth))+
-      scale_color_manual(values=cbbPalette, name="Phenology Treatment") +
-      geom_point(size=3)+
-      ylab("Number of Salamanders Detected Alive") + xlab("Recapture Date") +
-      theme(legend.position=c(0.4 ,0.75),axis.text.x = element_text(angle=45,hjust=1)) 
-    p
-    
-    png("IPR_AA_recaps.png", width=5, height=5, units='in', res=600)
-      p  ##insert plot code here
-    dev.off()
-    
-    
-    ## Summarize Recaps:
-    df <- subset(df, Species == "AMAN")
-    
-    df2 <- merge(df, treats, by.x=c("Re.Block", "Re.Pen"), by.y=c("Block", "Pen"), all.x = T)
-    # df2$Treatment <- as.factor(df2$Treatment)
-    
-    
-    length(unique(subset(df2, Visual==1 & is.na(df2$Mass_g)==F)$PIT_ID))
-    length(unique(subset(df2, (Visual==1 & is.na(Mass_g)==F) | Moved == 1)$PIT_ID))
-    
-    table(df2$Treatment.x, df2$Visual, df2$Period)
-    
-    df2 <- subset(df2, is.na(df2$Treatment.x)==F)
-    
-    df2$RGB <- ifelse(df2$Treatment.x == "L1J1", yes="#e66101", ##light orange
-                      no=ifelse(df2$Treatment.x == "L1J3", yes="#fdb863",  ## dark orange
-                                no=ifelse(df2$Treatment.x == "L3J1", yes="#5e3c99",  ##lavendar 
-                                          no="#b2abd2")))  ##dark purple
-    
-    df2$Phenology.Treatments <- ifelse(df2$Treatment.x == "L1J1", yes="1 Breeding, 1 Emigration", ##light orange
-                                       no=ifelse(df2$Treatment.x == "L1J3", yes="1 Breeding, 3 Emigration",  ## dark orange
-                                                 no=ifelse(df2$Treatment.x == "L3J1", yes="3 Breeding, 1 Emigration",  ##lavendar 
-                                                           no="3 Breeding, 3 Emigration")))  ##dark purple
-    
-    m <- ggplot(df2, aes(jitter(Period,amount = 0.2), Mass_g, color=Phenology.Treatments)) +
-      geom_point(size=2) +  
-      #theme_classic() +
-      my_theme2() + 
-      scale_x_continuous(breaks=seq(1,length(period_dates$dayMonth),1),labels=(period_dates$dayMonth))+
-      scale_color_manual(values=c("#a6611a", "#dfc27d", "#018571", "#80cdc1"), 
-                         guide=guide_legend(title="Phenology Treatment")) +
-      ylab("Mass (grams)") + xlab("Recapture Event") +
-      theme(legend.position=c(0.25, 0.85),axis.text.x=element_text(angle=45,hjust=1)) 
-    m
-    
-    png("IPR_AA_mass.png", width=5, height=5, units='in', res=600)
-      m  ##insert plot code here
-    dev.off()
-    
- 
-## ---------------
