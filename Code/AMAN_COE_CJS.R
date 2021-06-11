@@ -44,7 +44,7 @@
 ## ------------------
   doy.adj <- 172                           ## DOY value to standardize values to
   
-  aa_recaps <- subset(aa_recaps, recaps$Notes != "Arianne Salamander")
+  aa_recaps <- subset(aa_recaps, aa_recaps$Notes != "Arianne Salamander")
   aa_recaps$DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Recap_Date),"%m/%d/%Y"),"%j"))
   aa_recaps$DOY_adj <- ifelse(aa_recaps$DOY >= doy.adj, yes=aa_recaps$DOY-(doy.adj-1), no=recaps$DOY+(365-doy.adj+1))
     aa_recaps$Rel.DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Release),"%m/%d/%Y"),"%j"))
