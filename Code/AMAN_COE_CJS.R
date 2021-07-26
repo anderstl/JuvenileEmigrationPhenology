@@ -46,7 +46,7 @@
   
   aa_recaps <- subset(aa_recaps, aa_recaps$Notes != "Arianne Salamander")
   aa_recaps$DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Recap_Date),"%m/%d/%Y"),"%j"))
-  aa_recaps$DOY_adj <- ifelse(aa_recaps$DOY >= doy.adj, yes=aa_recaps$DOY-(doy.adj-1), no=recaps$DOY+(365-doy.adj+1))
+  aa_recaps$DOY_adj <- ifelse(aa_recaps$DOY >= doy.adj, yes=aa_recaps$DOY-(doy.adj-1), no=aa_recaps$DOY+(365-doy.adj+1))
     aa_recaps$Rel.DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Release),"%m/%d/%Y"),"%j"))
     aa_recaps$Rel.DOY_adj <- ifelse(aa_recaps$Rel.DOY >= doy.adj, yes=aa_recaps$Rel.DOY-(doy.adj-1), no=recaps$Rel.DOY+(365-doy.adj+1))
   
@@ -121,18 +121,14 @@
       }
     }
     
-    aa_CH <- as.matrix(aa_ch.pa[,5:dim(aa_ch.pa)[2]])            ## isolate capture history matrix data only. 
+    #add mass to data frame
+    aa_ch.pa<-merge(aa_ch.pa,aa_tagged,by=intersect(names(aa_ch.pa), names(aa_tagged)))
+    
+    ## isolate capture history matrix data only.
+    aa_CH <- as.matrix(aa_ch.pa[,5:dim(aa_ch.pa)[2]])             
    
     
-  ## Ignore for now -- converts from Arianne's data file format. Given my raw data format, I do not need these. 
-    # ch.pa$cap.hist <- numeric(length = dim(ch.pa)[1])
-    # ch.pa$cap.hist <- with(ch.pa, paste0(V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20))
-    #   # ch.pa$cap.hist <- do.call(paste0, ch.pa[,c("V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20")])
-    # ch <- ch.pa[,c("cap.hist", "PIT_Tag", "Treatment", "Block", "Pen")]
-    # 
-    # CH <- t(array(as.numeric(unlist(strsplit(ch$cap.hist,""))),dim=c(nchar(ch$cap.hist[1]),length(ch$PIT_Tag))))
-
-## ------------------
+  ## ------------------
     ## Analyze Survival:
     ## -----------------
     # Initial values
@@ -183,6 +179,12 @@
     # Create vector with occasion of marking
     get.first <- function(x) min(which(x!=0))
     f <- apply(aa_CH, 1, get.first)
+    
+    # Create matrix m to indicate when an individual was captured, to address test 2.ct trap effect
+    m<-aa_CH[,1:(dim(aa_CH)[2]-1)]
+    u<-which (m==0)
+    m[u]<-2
+    
     
     ## Fixed group effects
     ## -------------------
@@ -704,20 +706,20 @@
         model {
         # Priors and constraints
         for (i in 1:nind){
-        for (t in f[i]:(n.occasions-1)){
-        logit(phi[i,t]) <- eta.phi[t,group[i]]
-        p[i,t] <- p.g[group[i]]
-        } #t
+          for (t in f[i]:(n.occasions-1)){
+            logit(phi[i,t]) <- eta.phi[t,group[i]]
+            p[i,t] <- p.g[group[i]]
+          } #t
         } #i
         
         # for survival parameters
         for (t in 1:(n.occasions-1)){
-        eta.phi[t,1:g] ~ dmnorm(mu.phi[], Omega[,])
+          eta.phi[t,1:g] ~ dmnorm(mu.phi[], Omega[,])
         } #t
         
         for (u in 1:g){      
-        mean.phi[u] ~ dunif(0, 1)    # Priors on mean group-spec. survival
-        mu.phi[u] <- log(mean.phi[u] / (1-mean.phi[u]))
+          mean.phi[u] ~ dunif(0, 1)    # Priors on mean group-spec. survival
+          mu.phi[u] <- log(mean.phi[u] / (1-mean.phi[u]))
         } #g
         
         Omega[1:g, 1:g] ~ dwish(R[,], df)  # Priors for variance-covariance matrix
@@ -725,24 +727,24 @@
         
         # for recapture parameters
         for (u in 1:g){
-        p.g[u] ~ dunif(0, 1)            # Priors for group-spec. recapture
+          p.g[u] ~ dunif(0, 1)            # Priors for group-spec. recapture
         }
         
         # Likelihood 
         for (i in 1:nind){
-        # Define latent state at first capture
-        z[i,f[i]] <- 1
+          # Define latent state at first capture
+          z[i,f[i]] <- 1
         
-        for (t in (f[i]+1):n.occasions){
-        # State process
-        z[i,t] ~ dbern(mu1[i,t])
-        mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+          for (t in (f[i]+1):n.occasions){
+          # State process
+            z[i,t] ~ dbern(mu1[i,t])
+            mu1[i,t] <- phi[i,t-1] * z[i,t-1]
         
-        # Observation process
-        y[i,t] ~ dbern(mu2[i,t])
-        mu2[i,t] <- p[i,t-1] * z[i,t]
-        } #t
-        } #i
+          # Observation process
+            y[i,t] ~ dbern(mu2[i,t])
+            mu2[i,t] <- p[i,t-1] * z[i,t]
+            } #t
+          } #i
         }
         ",fill = TRUE)
     sink()
@@ -774,5 +776,218 @@
     
     
 ## -----------------
+    #ARIANNE'S Full Model
+    #5. Phi(.*g+mass+block+pen)P(t*g+cov+block+pen): 
+      # FULL MODEL
+      # Treatment effect
+      # Survival by mass
+      # Temperature and precipitation covariates (not yet)
+      # Time-dependent recapture and time-constant survival 
+      # Grand means
+      # With immediate trap response 
+    
+    group<-as.numeric(as.factor(aa_ch.pa$Treatment))
+    block<-as.numeric(aa_ch.pa$Block)
+    pen<-as.numeric(aa_ch.pa$Pen)
+    
+    # abiotic <- read.table("Abiotic.txt",header=T,colClasses="character")
+    # str(abiotic)
+    # cor.test(as.numeric(abiotic$tempc), as.numeric(abiotic$precip)) #Not autocorrelated
+    # 
+    # abiotic$tempc <- as.numeric(abiotic$tempc)
+    # stdtempc<-rep(NA,length(abiotic$tempc))
+    # abiotic$precip <- as.numeric(abiotic$precip)
+    # stdprecip<-rep(NA,length(abiotic$precip))
+    # abiotic$temp.sd <- as.numeric(abiotic$temp.sd)
+    # stdtempsd<-rep(NA,length(abiotic$temp.sd))
+    # 
+    # #Scale temp. and precip. covariates
+    # for (i in 1:length(abiotic$tempc)) {
+    #   stdtempc[i] <- (abiotic$tempc[i]-mean(abiotic$tempc[]))/sd(abiotic$tempc[])
+    #   stdtempsd[i] <- (abiotic$temp.sd[i]-mean(abiotic$temp.sd[]))/sd(abiotic$temp.sd[])
+    #   stdprecip[i] <- (abiotic$precip[i]-mean(abiotic$precip[]))/sd(abiotic$precip[])
+    # }
+    # 
+    #amb$mass <- as.numeric(aa_$mass)
+    aa_ch.pa$Meta.Mass[is.na(aa_ch.pa$Meta.Mass)]<-mean(aa_ch.pa$Meta.Mass,na.rm=T)
+    stdmass<-rep(NA,length(aa_ch.pa$Meta.Mass))
+    
+    #Scale mass covariate
+    for (i in 1:length(aa_ch.pa$Meta.Mass)) {
+      stdmass[i] <- (aa_ch.pa$Meta.Mass[i]-mean(aa_ch.pa$Meta.Mass[]))/sd(aa_ch.pa$Meta.Mass[])
+    }
+    
+    #calculate unequal interval lengths
+    int<-aggregate(DOY_adj~Period,FUN = "mean",data=aa_recaps)
+    int$interval<-NA
+    int.days<-diff(int$DOY_adj)
+    for(i in 1:nrow(int)){
+      int$interval[i]<-(int$DOY_adj[i+1]-int$DOY_adj[i])/mean(int.days)
+    }
+    
+    # Create vector with occasion of marking
+    get.first <- function(x) min(which(x!=0))
+    f <- apply(aa_CH, 1, get.first)
+    
+    # Specify model in BUGS language
+    sink("amb-cjs-trt-mass-cov-rand.jags")
+    cat("
+    model {
+    
+    ## Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(mean.phi + beta.a[group[i]] + beta.b*mass[i] + beta.c[block[i]] + beta.d[pen[i]] + epsilon.phi[i])))) ^int[t]
+        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.e[group[i],t] + beta.h[block[i],t] + beta.j[pen[i],t] + epsilon.p[t]))) #+ beta.f*temp[t] + beta.g*precip[t] 
+      } #t
+    } #i
+    
+    ## For survival
+    
+    mean.phi~dnorm(0,0.001)
+    mu.phi<-1/(1+exp(-mean.phi))           # Logit transformed Survival grand mean/intercept
+    
+    for (i in 1:nind){
+      epsilon.phi[i] ~ dnorm(0, tau.phi)         # Prior for individual survival residuals
+    }
+    
+    sigma.phi ~ dunif(0,5)                     # Prior on standard deviation
+    tau.phi <- pow(sigma.phi, -2)
+    sigma2.phi <- pow(sigma.phi, 2)            # Residual temporal variance
+    
+    for (u in 1:g){
+      beta.a[u] ~ dunif(0, 1)          # Priors for treatment-specific survival
+    }
+    
+    for (b in 1:nblock){
+      beta.c[b] ~ dnorm(0,tau.beta.c)      #Prior for logit of mean survival with random effect of block (random effect of block on phi)
+    }
+    
+    sigma.beta.c~dunif(0,5)
+    tau.beta.c<-pow(sigma.beta.c,-2)
+    sigma2.beta.c <- pow(sigma.beta.c, 2)
+    
+    for (p in 1:npen){
+      beta.d[p] ~ dnorm(0,tau.beta.d)    #Prior for logit of mean survival with random effect of pen given block
+    }
+    sigma.beta.d~dunif(0,5)
+    tau.beta.d<-pow(sigma.beta.d,-2)
+    sigma2.beta.d <- pow(sigma.beta.d, 2)
+    
+    beta.b ~ dnorm(0, 0.001)I(-10, 10)         # Prior for mass slope parameter
 
+    ##For overall recapture
+    
+    mean.p~dnorm(0,0.001)
+    mu.p<-1/(1+exp(-mean.p))              # Logit transformed Recapture grand mean/intercept
+    
+    for (t in 1:(n.occasions-1)){
+    epsilon.p[t] ~ dnorm(0, tau.p)          # Prior for recapture residuals
+    }
+    sigma.p ~ dunif(0,5)                    # Prior on standard deviation
+    tau.p <- pow(sigma.p, -2)
+    sigma2.p <- pow(sigma.p, 2)             # Residual temporal variance
+    
+    for (u in 1:2){
+      beta.m[u] ~ dunif(0, 1)        # Priors for time-specific recapture
+    }
+    
+    for (u in 1:g){
+      for (t in 1:(n.occasions-1)){
+        beta.e[u,t] ~ dunif(0, 1)          # Prior for time and group-spec. recapture
+      } #t
+    } #g
+    
+    for (b in 1:nblock){
+      for (t in 1:(n.occasions-1)){
+        beta.h[b,t] ~ dnorm(0,tau.beta.h)      #Prior for logit of mean recapture with random effect of block (random effect of block on p)
+      }
+    }
+    sigma.beta.h~dunif(0,5)
+    tau.beta.h<-pow(sigma.beta.h,-2)
+    sigma2.beta.h <- pow(sigma.beta.h, 2)
+    
+    for (p in 1:npen){
+      for (t in 1:(n.occasions-1)){
+        beta.j[p,t] ~ dnorm(0,tau.beta.j)    #Prior for logit of mean recapture with random effect of pen given block
+      }
+    }
+    sigma.beta.j~dunif(0,5)
+    tau.beta.j<-pow(sigma.beta.j,-2)
+    sigma2.beta.j <- pow(sigma.beta.j, 2)
+    
+    #For covariates
+    beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter
+    beta.g ~ dnorm(0, 0.001)I(-10, 10)         # Prior for precip slope parameter
+
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+          # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+          
+          # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    ",fill = TRUE)
+    sink()
+    
+    known.state.cjs <- function(ch){
+      state <- ch
+      for (i in 1:dim(ch)[1]){
+        n1 <- min(which(ch[i,]==1))
+        n2 <- max(which(ch[i,]==1))
+        state[i,n1:n2] <- 1
+        state[i,n1] <- NA
+      }
+      state[state==0] <- NA
+      return(state)
+    }
+    
+    # Function to create a matrix of initial values for latent state z
+    cjs.init.z <- function(ch,f){
+      for (i in 1:dim(ch)[1]){
+        if (sum(ch[i,])==1) next
+        n2 <- max(which(ch[i,]==1))
+        ch[i,f[i]:n2] <- NA
+      }
+      for (i in 1:dim(ch)[1]){
+        ch[i,1:f[i]] <- NA
+      }
+      return(ch)
+    }
+    
+    # Bundle data
+    jags.data <- list(y = aa_CH, int=int, f = f, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], z = known.state.cjs(aa_CH), 
+                      nblock = length(unique(block)), block = as.numeric(block), npen = length(unique(pen)), pen = as.numeric(pen),
+                      mass=stdmass, temp = stdtempc, precip = stdprecip, g = length(unique(group)), group=group, m=m)
+    
+    # Initial values (probably need to adjust thse to match dimensions of certain parameters)
+    inits <- function(){list(z = cjs.init.z(CH,f), sigma.phi = runif(1, 0, 2), sigma.p = runif(1, 0, 2), 
+                             mean.phi = runif(1, 0, 1), mean.p = runif(1, 0, 1), beta.f = runif(1, -5, 5), beta.g = runif(1, -5, 5),
+                             beta.e = array(runif(63, 0, 1),dim=c(3,21)), beta.a = runif(length(unique(group)), 0, 1), 
+                             beta.c = runif(length(unique(block)), 0, 1), beta.h = array(runif(105, 0, 1),dim=c(5,21)), 
+                             sigma.beta.c= runif(1, 0, 2), sigma.beta.h= runif(1, 0, 2), beta.b = runif(1, -5, 5),
+                             beta.j = array(runif(609, 0, 1),dim=c(29,21)), beta.d = runif(length(unique(pen)), 0, 1), 
+                             sigma.beta.d= runif(1, 0, 2), sigma.beta.j= runif(1, 0, 2), beta.m = runif (2, 0, 1))}  
+    
+    # Parameters monitored
+    parameters <- c("mu.phi", "mean.phi", "beta.b", "mu.p", "mean.p", "beta.m", "sigma2.phi", "sigma2.p", "beta.f","beta.g", "beta.a", "sigma2.beta.c", "sigma2.beta.d", "sigma2.beta.h", "sigma2.beta.j", "beta.c", "beta.d", "beta.e", "beta.h", "beta.j", "epsilon.phi", "epsilon.p", "phi", "p")
+    
+    # MCMC settings
+    ni <- 60000
+    nt <- 10
+    nb <- 30000
+    nc <- 3
+    
+    # Call JAGS from R (JRT 55 min)
+    amb.cjs.intspp.mass.cov.rand <- jags(jags.data, parallel=TRUE, inits, parameters, "amb-cjs-intspp-mass-cov-rand.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+    
 
