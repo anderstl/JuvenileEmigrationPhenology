@@ -984,4 +984,13 @@
     # Call JAGS from R (JRT 55 min)
     aa.cjs.trt.mass.cov.rand <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-rand.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
     print(aa.cjs.trt.mass.cov.rand)
-
+    
+    #treatment contrasts
+    trtvals<-combn(1:4,m=2,simplify=F)
+    trt.cont<-matrix(NA,dim(aa.cjs.trt.mass.cov.rand$sims.list$beta.a)[1],length(trtvals))
+    for(i in 1:length(trtvals)){
+      trt.cont[,i]<-(aa.cjs.trt.mass.cov.rand$sims.list$beta.a[,trtvals[[i]][[1]]]-aa.cjs.trt.mass.cov.rand$sims.list$beta.a[,trtvals[[i]][[2]]])
+    }
+    
+  
+    
