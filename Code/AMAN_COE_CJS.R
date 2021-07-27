@@ -32,7 +32,7 @@
 ## --------------------------------
   
   aa_recaps <- read.csv("Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
-  aa_weather <- read_excel("Data/AMAN/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
+  #aa_weather <- read_excel("Data/AMAN/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
   
   aa_assign <- read_excel("Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
   aa_treats <- read.csv("Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
@@ -62,8 +62,8 @@
     aa_recaps$Re.Micro[i] <- unlist(strsplit(aa_recaps$Recap_Loc[i], ","))[3]
   }
   
-    aa_weather$DOY <- as.numeric(format(as.Date(as.character(aa_weather$DATE), "%m/%d/%Y"), "%j"))
-    aa_weather$DOY_adj <- ifelse(aa_weather$DOY >= doy.adj, yes=aa_weather$DOY-(doy.adj-1), no=ifelse(aa_weather$DOY < 152, yes=aa_weather$DOY+(365-doy.adj+1), no=aa_weather$DOY-(doy.adj-1)))
+    #aa_weather$DOY <- as.numeric(format(as.Date(as.character(aa_weather$DATE), "%m/%d/%Y"), "%j"))
+    #aa_weather$DOY_adj <- ifelse(aa_weather$DOY >= doy.adj, yes=aa_weather$DOY-(doy.adj-1), no=ifelse(aa_weather$DOY < 152, yes=aa_weather$DOY+(365-doy.adj+1), no=aa_weather$DOY-(doy.adj-1)))
     
     aa_assign$Release_DOY <- as.numeric(format(as.Date(as.character(aa_assign$Release_Date), "%Y-%m-%d"),"%j"))
     aa_assign$DOY_adj <- ifelse(aa_assign$Release_DOY >= doy.adj, yes=aa_assign$Release_DOY-(doy.adj-1), no=aa_assign$Release_DOY+(365-doy.adj+1))
@@ -792,24 +792,24 @@
     pen_aa<-as.numeric(as.factor(paste(aa_ch.pa$Block,aa_ch.pa$Pen,sep="")))
     
     
-    # abiotic <- read.table("Abiotic.txt",header=T,colClasses="character")
-    # str(abiotic)
-    # cor.test(as.numeric(abiotic$tempc), as.numeric(abiotic$precip)) #Not autocorrelated
-    # 
-    # abiotic$tempc <- as.numeric(abiotic$tempc)
-    # stdtempc<-rep(NA,length(abiotic$tempc))
-    # abiotic$precip <- as.numeric(abiotic$precip)
-    # stdprecip<-rep(NA,length(abiotic$precip))
-    # abiotic$temp.sd <- as.numeric(abiotic$temp.sd)
-    # stdtempsd<-rep(NA,length(abiotic$temp.sd))
-    # 
-    # #Scale temp. and precip. covariates
-    # for (i in 1:length(abiotic$tempc)) {
-    #   stdtempc[i] <- (abiotic$tempc[i]-mean(abiotic$tempc[]))/sd(abiotic$tempc[])
-    #   stdtempsd[i] <- (abiotic$temp.sd[i]-mean(abiotic$temp.sd[]))/sd(abiotic$temp.sd[])
-    #   stdprecip[i] <- (abiotic$precip[i]-mean(abiotic$precip[]))/sd(abiotic$precip[])
-    # }
-    # 
+    aa_abiotic <- readRDS("Results/aa_abiotic.rds")
+    str(aa_abiotic)
+    cor.test(as.numeric(aa_abiotic$Tmin), as.numeric(aa_abiotic$Prcp)) #Not autocorrelated
+
+    aa_abiotic$Tmin <- as.numeric(aa_abiotic$Tmin)
+    aa_stdtempc<-rep(NA,length(aa_abiotic$Tmin))
+    aa_abiotic$Prcp <- as.numeric(aa_abiotic$Prcp)
+    aa_stdprecip<-rep(NA,length(aa_abiotic$Prcp))
+    #aa_abiotic$temp.sd <- as.numeric(aa_abiotic$temp.sd)
+    #aa_stdtempsd<-rep(NA,length(aa_abiotic$temp.sd))
+
+    #Scale temp. and Prcp. covariates
+    for (i in 1:length(aa_abiotic$Tmin)) {
+      aa_stdtempc[i] <- (aa_abiotic$Tmin[i]-mean(aa_abiotic$Tmin[]))/sd(aa_abiotic$Tmin[])
+      #stdtempsd[i] <- (aa_abiotic$temp.sd[i]-mean(aa_abiotic$temp.sd[]))/sd(aa_abiotic$temp.sd[])
+      aa_stdprecip[i] <- (aa_abiotic$Prcp[i]-mean(aa_abiotic$Prcp[]))/sd(aa_abiotic$Prcp[])
+    }
+
     #amb$mass <- as.numeric(aa_$mass)
     aa_ch.pa$Meta.Mass[is.na(aa_ch.pa$Meta.Mass)]<-mean(aa_ch.pa$Meta.Mass,na.rm=T)
     stdmass_aa<-rep(NA,length(aa_ch.pa$Meta.Mass))
@@ -835,7 +835,7 @@
     interval_aa$int<-interval_aa$days/mean(interval_aa$days)
     
     # Specify model in BUGS language
-    sink("amb-cjs-trt-mass-cov-rand.jags")
+    sink("aa-cjs-trt-mass-cov-rand.jags")
     cat("
     model {
     
@@ -843,7 +843,7 @@
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
         phi[i,t] <- (1/(1+exp(-(mean.phi + beta.a[group[i]] + beta.b*mass[i] + beta.c[block[i]]  + beta.d[pen[i]] + epsilon.phi[i])))) ^int[t] 
-        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.e[group[i],t] + beta.h[block[i],t] + beta.j[pen[i],t] +  epsilon.p[t]))) #+ beta.f*temp[t] + beta.g*precip[t] 
+        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.e[group[i],t] + beta.f*temp[t] + beta.g*precip[t] + beta.h[block[i],t] + beta.j[pen[i],t] +  epsilon.p[t]))) 
       } #t
     } #i
     
@@ -922,8 +922,8 @@
     sigma2.beta.j <- pow(sigma.beta.j, 2)
     
     #For covariates
-    #beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter
-    #beta.g ~ dnorm(0, 0.001)I(-10, 10)         # Prior for precip slope parameter
+    beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter
+    beta.g ~ dnorm(0, 0.001)I(-10, 10)         # Prior for precip slope parameter
 
     
     # Likelihood 
@@ -946,13 +946,13 @@
     
     
     # Bundle data
-    jags.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], z = known.state.cjs(aa_CH), 
+    aa.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], z = known.state.cjs(aa_CH), 
                       nblock = length(unique(block_aa)), block = as.numeric(block_aa), npen = length(unique(pen_aa)), pen = as.numeric(pen_aa),
-                      mass=stdmass_aa, g = length(unique(group_aa)), group=group_aa, m=m_aa)
-                      #temp = stdtempc, precip = stdprecip, )
+                      mass=stdmass_aa, g = length(unique(group_aa)), group=group_aa, m=m_aa,
+                      temp = aa_stdtempc, precip = aa_stdprecip)
     
     # Initial values (probably need to adjust thse to match dimensions of certain parameters)
-    inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
+    aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
                              sigma.phi = runif(1, 0, 2), 
                              sigma.p = runif(1, 0, 2), 
                              mean.phi = runif(1, 0, 1), 
@@ -973,15 +973,15 @@
                              beta.m = runif (2, 0, 1))}  
     
     # Parameters monitored
-    parameters <- c("mu.phi", "mean.phi", "beta.b", "mu.p", "mean.p", "beta.m", "sigma2.phi", "sigma2.p", "beta.f","beta.g", "beta.a", "sigma2.beta.c", "sigma2.beta.d", "sigma2.beta.h", "sigma2.beta.j", "beta.c", "beta.d", "beta.e", "beta.h", "epsilon.phi", "epsilon.p", "phi", "p") #"beta.j", 
+    parameters <- c("mu.phi", "mean.phi", "beta.b", "mu.p", "mean.p", "beta.m", "sigma2.phi", "sigma2.p", "beta.f","beta.g", "beta.a", "sigma2.beta.c", "sigma2.beta.d", "sigma2.beta.h", "sigma2.beta.j", "beta.c", "beta.d", "beta.e", "beta.h", "beta.j", "epsilon.phi", "epsilon.p", "phi", "p") 
     
     # MCMC settings
-    ni <- 500
-    nt <- 10
-    nb <- 300
+    ni <- 25000
+    nt <- 5
+    nb <- 15000
     nc <- 3
     
     # Call JAGS from R (JRT 55 min)
-    amb.cjs.trt.mass.cov.rand <- jags(jags.data, parallel=TRUE, inits, parameters, "amb-cjs-trt-mass-cov-rand.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-    
+    aa.cjs.trt.mass.cov.rand <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-rand.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+    print(aa.cjs.trt.mass.cov.rand)
 
