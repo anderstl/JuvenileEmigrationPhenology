@@ -842,8 +842,8 @@
     ## Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (1/(1+exp(-(mean.phi + beta.a[group[i]] + beta.b*mass[i] + beta.c[block[i]]  + epsilon.phi[i])))) ^int[t] #+ beta.d[pen[i]]
-        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.e[group[i],t] + beta.h[block[i],t] +  epsilon.p[t]))) #+ beta.f*temp[t] + beta.g*precip[t] + beta.j[pen[i],t] +
+        phi[i,t] <- (1/(1+exp(-(mean.phi + beta.a[group[i]] + beta.b*mass[i] + beta.c[block[i]]  + beta.d[pen[i]] + epsilon.phi[i])))) ^int[t] 
+        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.e[group[i],t] + beta.h[block[i],t] + beta.j[pen[i],t] +  epsilon.p[t]))) #+ beta.f*temp[t] + beta.g*precip[t] 
       } #t
     } #i
     
@@ -872,13 +872,13 @@
     tau.beta.c<-pow(sigma.beta.c,-2)
     sigma2.beta.c <- pow(sigma.beta.c, 2)
     
-    # for (p in 1:npen){
-    #   beta.d[p] ~ dnorm(0,tau.beta.d)    #Prior for logit of mean survival with random effect of pen given block
-    # }
-    # sigma.beta.d~dunif(0,5)
-    # tau.beta.d<-pow(sigma.beta.d,-2)
-    # sigma2.beta.d <- pow(sigma.beta.d, 2)
-    
+    for (p in 1:npen){
+      beta.d[p] ~ dnorm(0,tau.beta.d)    #Prior for logit of mean survival with random effect of pen given block
+    }
+    sigma.beta.d~dunif(0,5)
+    tau.beta.d<-pow(sigma.beta.d,-2)
+    sigma2.beta.d <- pow(sigma.beta.d, 2)
+
     beta.b ~ dnorm(0, 0.001)I(-10, 10)         # Prior for mass slope parameter
 
     ##For overall recapture
@@ -912,14 +912,14 @@
     tau.beta.h<-pow(sigma.beta.h,-2)
     sigma2.beta.h <- pow(sigma.beta.h, 2)
     
-    # for (p in 1:npen){
-    #   for (t in 1:(n.occasions-1)){
-    #     beta.j[p,t] ~ dnorm(0,tau.beta.j)    #Prior for logit of mean recapture with random effect of pen given block
-    #   }
-    # }
-    # sigma.beta.j~dunif(0,5)
-    # tau.beta.j<-pow(sigma.beta.j,-2)
-    # sigma2.beta.j <- pow(sigma.beta.j, 2)
+    for (p in 1:npen){
+      for (t in 1:(n.occasions-1)){
+        beta.j[p,t] ~ dnorm(0,tau.beta.j)    #Prior for logit of mean recapture with random effect of pen given block
+      }
+    }
+    sigma.beta.j~dunif(0,5)
+    tau.beta.j<-pow(sigma.beta.j,-2)
+    sigma2.beta.j <- pow(sigma.beta.j, 2)
     
     #For covariates
     #beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter
