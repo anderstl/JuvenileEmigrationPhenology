@@ -36,11 +36,11 @@ endfates<-merge(endfates,penID,by=c("PIT_Tag","Juv.Treat","Juv.Pen","Treatment",
 DOY.adj <- 157                           ## Standardize DOY to date of first release- 07 June 2019
 
 recaps<-recaps%>%
-  mutate(mutate(across(where(is.character), as.factor)))%>%
+  #mutate(mutate(across(where(is.character), as.factor)))%>%
   filter(!grepl("^UNK.",PIT_Tag))%>% #untagged animals we caught
   filter(!grepl("Arianne",Notes))%>%
-  #filter(!(Period%in%c("R1","R2","R3")))%>% #release periods
-  filter(PIT_Tag=="x0992")%>% #tag from last year
+  filter(!(Period%in%c("R1","R2","R3")))%>% #release periods
+  filter(PIT_Tag!="x0992")%>% #tag from last year
   mutate(DOY = as.numeric(format(as.Date(as.character(Recap_Date),"%Y-%m-%d"),"%j")),
          DOY_adj = ifelse(DOY >= DOY.adj, yes=DOY-(DOY.adj-1), no=DOY+(365-DOY.adj+1)),
          Rel.DOY = as.numeric(format(as.Date(as.character(Release),"%Y-%m-%d"),"%j")),
@@ -54,7 +54,7 @@ recaps<-recaps%>%
          Burr_Vis = ifelse(is.na(Burr_Vis)==T, yes=0, no=Burr_Vis),
          Pre.Alive = (Moved + Visual + Burr_Vis),
          Pre.Alive = ifelse(Pre.Alive >= 1, yes=1, no=0))
-recaps<-ao_recaps%>%
+recaps<-recaps%>%
   mutate(DOY_adj1=if_else(Recap_Date>"2020-06-06",DOY_adj+365,DOY_adj))
 
 penID<-penID%>%
@@ -68,7 +68,8 @@ df <- merge(recaps, penID, by=c("PIT_Tag"),all.x=T)
 #   mutate(Species=Species.y)%>%
 #   select(!c(Species.x,Species.y))
 
-ao_df<- filter(df,as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))
+ao_df<- df%>%
+  filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))
 
 #Build capture history matrix
 # ao_ch.pa <- matrix(0, nrow=dim(ao_penID)[1], ncol=max(as.numeric(ao_recaps$Period), na.rm=T))
@@ -160,17 +161,17 @@ cjs.init.z <- function(ch,f){
   return(ch)
 }
 
-# Create group variable
-group_ao.L <- character(length = dim(ao_ch.pa)[1])      ## breeding phenology group
-group_ao.J <- character(length = dim(ao_ch.pa)[1])      ## emigration phenology group
-
-for(i in 1:dim(ao_ch.pa)[1]){
-  group_ao.L[i] <- unlist(strsplit(as.character(ao_ch.pa$Juv.Treat[i]), "[-]", perl=T))[[1]]
-  group_ao.J[i] <- unlist(strsplit(as.character(ao_ch.pa$Juv.Treat[i]), "[-]", perl=T))[[2]]
-}
-
-group_ao.L <- as.factor(group_ao.L)
-group_ao.J <- as.factor(group_ao.J)
+# # Create group variable
+# group_ao.L <- character(length = dim(ao_ch.pa)[1])      ## breeding phenology group
+# group_ao.J <- character(length = dim(ao_ch.pa)[1])      ## emigration phenology group
+# 
+# for(i in 1:dim(ao_ch.pa)[1]){
+#   group_ao.L[i] <- unlist(strsplit(as.character(ao_ch.pa$Juv.Treat[i]), "[-]", perl=T))[[1]]
+#   group_ao.J[i] <- unlist(strsplit(as.character(ao_ch.pa$Juv.Treat[i]), "[-]", perl=T))[[2]]
+# }
+# 
+# group_ao.L <- as.factor(group_ao.L)
+# group_ao.J <- as.factor(group_ao.J)
 
 # Create vector with occasion of marking
 get.first <- function(x) min(which(x!=0))
@@ -190,21 +191,18 @@ pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
 
 #load weather data
 ao_abiotic <- readRDS("Results/ao_abiotic.rds")
-str(ao_abiotic)
-cor.test(as.numeric(ao_abiotic$Tavg), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
+cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
 
-ao_abiotic$tempc <- as.numeric(ao_abiotic$Tmin)
 ao_stdtempc<-rep(NA,length(ao_abiotic$Tavg))
-ao_abiotic$precip <- as.numeric(ao_abiotic$Prcp)
 ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
 # abiotic$temp.sd <- as.numeric(abiotic$temp.sd)
 # stdtempsd<-rep(NA,length(abiotic$temp.sd))
 
 #Scale temp. and precip. covariates
 for (i in 1:length(ao_abiotic$Tmin)) {
-  ao_stdtempc[i] <- (ao_abiotic$tempc[i]-mean(ao_abiotic$tempc[]))/sd(ao_abiotic$tempc[])
+  ao_stdtempc[i] <- (ao_abiotic$Tmin[i]-mean(ao_abiotic$Tmin[]))/sd(ao_abiotic$Tmin[])
   #stdtempsd[i] <- (abiotic$temp.sd[i]-mean(abiotic$temp.sd[]))/sd(abiotic$temp.sd[])
-  ao_stdprecip[i] <- (ao_abiotic$precip[i]-mean(ao_abiotic$precip[]))/sd(ao_abiotic$precip[])
+  ao_stdprecip[i] <- (ao_abiotic$Prcp[i]-mean(ao_abiotic$Prcp[]))/sd(ao_abiotic$Prcp[])
 }
 
 stdmass_ao<-rep(NA,length(ao_wide$Meta.Mass.g))
@@ -217,7 +215,7 @@ for (i in 1:length(ao_wide$Meta.Mass)) {
 #calculate unequal interval lengths 
 #interval next to event 1 was calculated from the time of release (event 0). 
 #The last interval is then between the last and second to last events)
-interval_ao<-ao_recaps%>%
+interval_ao<-recaps%>%
   mutate(Period=as.numeric(as.character(Period)))%>%
   group_by(Period)%>%
   dplyr::summarise(min.int=min(DOY_adj1,na.rm=T),max.int=max(DOY_adj1,na.rm=T))
@@ -341,12 +339,12 @@ sink()
 
 
 # Bundle data
-jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH), 
+ao_jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH), 
                   nblock = length(unique(block_ao)), block = as.numeric(block_ao), npen = length(unique(pen_ao)), pen = as.numeric(pen_ao),
                   mass=stdmass_ao, g = length(unique(group_ao)), group=group_ao, m=m_ao,temp = ao_stdtempc, precip = ao_stdprecip)
 
 # Initial values (probably need to adjust thse to match dimensions of certain parameters)
-inits <- function(){list(z = cjs.init.z(ao_CH,f_ao), 
+ao_inits <- function(){list(z = cjs.init.z(ao_CH,f_ao), 
                          sigma.phi = runif(1, 0, 2), 
                          sigma.p = runif(1, 0, 2), 
                          mean.phi = runif(1, 0, 1), 
@@ -367,7 +365,12 @@ inits <- function(){list(z = cjs.init.z(ao_CH,f_ao),
                          beta.m = runif (2, 0, 1))}  
 
 # Parameters monitored
-parameters <- c("mu.phi", "mean.phi", "beta.b", "mu.p", "mean.p", "beta.m", "sigma2.phi", "sigma2.p", "beta.f","beta.g", "beta.a", "sigma2.beta.c", "sigma2.beta.d", "sigma2.beta.h", "sigma2.beta.j", "beta.c", "beta.d", "beta.e", "beta.h", "beta.j", "epsilon.phi", "epsilon.p", "phi", "p") 
+parameters <- c("mu.phi", "mean.phi", "beta.b", "mu.p", 
+                "mean.p", "beta.m", "sigma2.phi", "sigma2.p", 
+                "beta.f","beta.g", "beta.a", "sigma2.beta.c", 
+                "sigma2.beta.d", "sigma2.beta.h", "sigma2.beta.j", 
+                "beta.c", "beta.d", "beta.e", "beta.h", "beta.j", 
+                "epsilon.phi", "epsilon.p", "phi", "p") 
 
 # MCMC settings
 ni <- 1000
@@ -376,7 +379,9 @@ nb <- 500
 nc <- 3
 
 # Call JAGS from R (JRT 55 min)
-ao.cjs.trt.mass.cov.rand <- jags(jags.data, parallel=TRUE, inits, parameters, "ao-cjs-trt-mass-cov-rand.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+ao.cjs.trt.mass.cov.rand <- jags(ao_jags.data, parallel=TRUE, ao_inits, parameters, 
+                                 "ao-cjs-trt-mass-cov-rand.jags", n.chains = nc, 
+                                 n.thin = nt, n.iter = ni, n.burnin = nb)
 print(ao.cjs.trt.mass.cov.rand)
 
 plot(ao.cjs.trt.mass.cov.rand)
