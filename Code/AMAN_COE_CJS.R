@@ -261,9 +261,9 @@
     parameters <- c("mean.phi", "beta", "phi", "p")
     
     # MCMC settings
-    ni <- 15000
+    ni <- 50000
     nt <- 10
-    nb <- 7000
+    nb <- 25000
     nc <- 3
     
     # Call JAGS from R (BRT 1 min)
@@ -336,9 +336,9 @@
     parameters <- c("alpha", "beta", "sigma2", "phi", "p")
     
     ## MCMC settings
-    ni <- 5000
+    ni <- 50000
     nt <- 10
-    nb <- 2500
+    nb <- 25000
     nc <- 3
     
     # Call JAGS from R (BRT 2 min)
@@ -399,9 +399,9 @@
     parameters <- c("alpha", "mean.p", "beta","phi", "p")
     
     # MCMC settings
-    ni <- 15000
+    ni <- 50000
     nt <- 10
-    nb <- 7000
+    nb <- 25000
     nc <- 3
     
     # Call JAGS from R (BRT 2 min)
@@ -457,7 +457,7 @@
     sink()
     
     # Bundle data
-    aa_jags.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], m=m)
+    aa_jags.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], m=m_aa)
     
     # Initial values
     inits <- function(){list(mean.phi = runif(1, 0, 1), beta = runif(2, 0, 1), z = known.state.cjs(aa_CH),
@@ -467,16 +467,23 @@
     parameters <- c("beta", "mean.phi", "sigma2", "phi", "p")
     
     # MCMC settings
-    ni <- 15000
+    ni <- 50000
     nt <- 10
-    nb <- 7000
+    nb <- 25000
     nc <- 3
     
     # Call JAGS from R (BRT 1.87 min)
     amb.cjs.c.t <- jags(aa_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-c-t.jags", 
                         n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
     print(amb.cjs.c.t)
-    
+
+# Check DIC values for models ---------------------------------------------
+
+amb.cjs.c.c$DIC
+amb.cjs.t.t$DIC
+amb.cjs.t.c$DIC
+amb.cjs.c.t$DIC
+
 ## -----------------
     #ARIANNE'S Full Model
     #5. Phi(.*g+mass+block+pen)P(t*g+cov+block+pen): 
