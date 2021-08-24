@@ -31,12 +31,12 @@
 ## Set Directories and Import Data:
 ## --------------------------------
   
-  aa_recaps <- read.csv("Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
-  #aa_weather <- read_excel("Data/AMAN/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
+  aa_recaps <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
+  #aa_weather <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
   
-  aa_assign <- read_excel("Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
-  aa_treats <- read.csv("Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
-  aa_tagged <- read_excel("Data/AMAN/Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
+  aa_assign <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
+  aa_treats <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
+  aa_tagged <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
 ## --------------------------------
 
 
