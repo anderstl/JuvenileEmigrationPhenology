@@ -12,7 +12,7 @@
 ##    Analysis summary: We assessed surivival using CJS Modles as outlined in Bayesian Population
 ##          Analysis using WinBUGS by Kery & Schaub. Growth was assessed using _____.
 ##
-## Edited by: Jake Burkhart and Tom Anderson
+## Edited by: Jake Burkhart, Tom Anderson, and Arianne Messerman
 ## ----------------------------------------------------------------------------------------------
 
 ## Load Packages:
@@ -672,7 +672,7 @@ nc <- 4
 
 # Call JAGS from R (JRT 55 min)
 aa.cjs.trt.mass.cov.rand <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-rand.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(aa.cjs.trt.mass.cov.rand)
+print(aa.cjs.trt.mass.cov.rand)#DIC=1287
 
 #treatment contrasts
 trtvals<-combn(1:4,m=2,simplify=F)
@@ -839,7 +839,7 @@ nc <- 4
 
 # Call JAGS from R (JRT 55 min)
 aa.cjs.trt.mass.cov.rand1 <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-rand1.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(aa.cjs.trt.mass.cov.rand1)
+print(aa.cjs.trt.mass.cov.rand1)#DIC=977.29
 
 #treatment contrasts
 trtvals<-combn(1:4,m=2,simplify=F)
@@ -883,8 +883,11 @@ cat("
     sigma2.phi <- pow(sigma.phi, 2)            # Residual temporal variance
     
     for (u in 1:g){
-      beta.a[u] ~ dunif(0, 1)                    # Priors for treatment-specific survival
-    }
+      for (t in 1:(n.occasions-1)){
+        beta.a[u,t] ~ dunif(0, 1)               # Prior for time and group-spec. survival
+      } #t
+    } #g
+    
     
     #For covariates
     beta.b ~ dnorm(0, 0.001)I(-10, 10)         # Prior for survival mass slope parameter
@@ -906,7 +909,7 @@ cat("
     sigma2.beta.d <- pow(sigma.beta.d, 2)
     
 
-    ##For overall recapture
+    ##For recapture
     
     mean.p~dnorm(0,0.001)
     mu.p<-1/(1+exp(-mean.p))                # Logit transformed Recapture grand mean/intercept
@@ -1014,7 +1017,7 @@ nc <- 4
 
 # Call JAGS from R (JRT 55 min)
 aa.cjs.trt.mass.cov.rand.tt <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-rand-tt.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(aa.cjs.trt.mass.cov.rand)
+print(aa.cjs.trt.mass.cov.rand.tt)#DIC=1033
 
 #treatment contrasts
 trtvals<-combn(1:4,m=2,simplify=F)
