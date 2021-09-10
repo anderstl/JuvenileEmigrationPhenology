@@ -6,6 +6,9 @@ if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
 if(!require(dplyr)) install.packages('dplyr'); library("dplyr")
 if(!require(viridis)) install.packages('viridis'); library("viridis")
 
+#install.packages("devtools")
+#devtools::install_github("tidyverse/dplyr")
+
 ## --------------
 #Nick's IPR theme
 my_theme2 <- function()
