@@ -4,27 +4,27 @@
     # Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (alpha[group[i]] + gamma[t])^int[t]     # Time and treatment-dependent survival
-        p[i,t] <- beta[m[i,t]]                              # Constant recapture
+        phi[i,t] <- (1/(1+exp(-(alpha[group[i]] + gamma[t]))))^int[t]     # Time and treatment-dependent survival
+        p[i,t] <- beta[m[i,t]]                                     # Constant recapture
       } #t
     } #i
     
     for(u in 1:2){
-      beta[u] ~ dunif(0, 1)         # Priors for recapture
+      beta[u] ~ dunif(0, 1)              # Priors for recapture
     }
     
-    alpha[1] <- 0                    # Corner constraint
-    alpha[2] ~ dnorm(0, 0.01)T(-10,10)    # Priors for difference in treatment-spec. survival compared to treatment 1
-    alpha[3] ~ dnorm(0, 0.01)T(-10,10)
-    alpha[4] ~ dnorm(0, 0.01)T(-10,10)
+    alpha[1] <- 0                        # Corner constraint
+    alpha[2] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. survival compared to treatment 1
+    alpha[3] ~ dnorm(0, 0.01)I(-10,10)
+    alpha[4] ~ dnorm(0, 0.001)I(-10,10)
     
     for(t in 1:(n.occasions-1)){
-      gamma[t] ~ dnorm(0, 0.01)(-10,10)       # Prior for time-dependent survival
+      gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
       
       phi.trt1[t] <- 1/(1 + exp(-gamma[t]))             # Back-transformed survival of treatment 1
       phi.trt2[t] <- 1/(1 + exp(-gamma[t]-alpha[2]))    # Back-transformed survival of treatment 2
       phi.trt3[t] <- 1/(1 + exp(-gamma[t]-alpha[3]))    # Back-transformed survival of treatment 3
-      phi.trt2[t] <- 1/(1 + exp(-gamma[t]-alpha[4]))    # Back-transformed survival of treatment 4
+      phi.trt4[t] <- 1/(1 + exp(-gamma[t]-alpha[4]))    # Back-transformed survival of treatment 4
     }
     
     # Likelihood 
