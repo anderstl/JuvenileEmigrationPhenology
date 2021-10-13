@@ -486,7 +486,7 @@ aa_abiotic$Prcp <- as.numeric(aa_abiotic$Prcp)
 aa_stdprecip<-rep(NA,length(aa_abiotic$Prcp))
 aa_stdprecip<-rep(NA,length(aa_abiotic$Prcp))
 aa_stdpropMax<-rep(NA,length(aa_abiotic$propMax))
-aa_reachMax<-c(1, 1, 1, rep(0,13)) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
+aa_reachMax<-as.numeric(factor(c(1, 1, 1, rep(0,13)))) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
 #aa_abiotic$temp.sd <- as.numeric(aa_abiotic$temp.sd)
 #aa_stdtempsd<-rep(NA,length(aa_abiotic$temp.sd))
 hist(aa_abiotic$Tmin)
@@ -2279,7 +2279,164 @@ print(aa.cjs.trt.mass.cov.ctmax)#DIC=1006.887
 plot(aa.cjs.trt.mass.cov.ctmax)
 
 ###################################################################################################
-#13. Phi(t+g+mass+temp+precip+block+pen)P(t+g+block+pen): 
+#Best supported model structure based on DIC
+#13. Phi(t+g+mass+reachMax+block+pen)P(.+g+block+pen): 
+# Treatment additive effect
+# Survival by mass and factor indicating if any interval days reached CTmax, NO temperature or precipitation
+# Time-dependent survival and constant recapture (best model based on DIC)
+# NO grand means
+# With immediate trap response 
+###################################################################################################
+
+# Specify model in BUGS language
+sink("aa-cjs-trt-mass-cov-ctmax1.jags")
+cat("
+  model {
+    
+    ## Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-( beta.g1[group[i]] + beta.mass*mass[i] + beta.ctm[reach[t]] + beta.bl[block[i],t] + beta.pen[pen[i],t] + epsilon.phi[t]))))^int[t]
+        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + beta.g2[group[i]] + beta.bl1[block[i]] + beta.pen1[pen[i]])))
+      } #t
+    } #i
+    
+    
+    
+    ## For recapture
+  
+    #mean.p~dnorm(0,0.001)
+    #mu.p<-1/(1+exp(-mean.p))           # Logit transformed recapture grand mean/intercept
+    
+    for (u in 1:2){
+      beta.m[u] ~ dunif(0, 1)        # Priors for previous recapture effect
+    }
+    
+    beta.g2[1] <- 0                           # Corner constraint
+    beta.g2[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. recapture compared to treatment 1
+    beta.g2[3] ~ dnorm(0, 0.01)I(-10,10)
+    beta.g2[4] ~ dnorm(0, 0.01)I(-10,10)
+    
+    for (b in 1:nblock){
+      beta.bl1[b] ~ dnorm(0,tau.beta.bl1)      #Prior for logit of mean recapture with random effect of block (random effect of block on p)
+    }
+    sigma.beta.bl1~dunif(0,5)
+    tau.beta.bl1<-pow(sigma.beta.bl1,-2)
+    sigma2.beta.bl1 <- pow(sigma.beta.bl1, 2)
+    
+    for (p in 1:npen){
+      beta.pen1[p] ~ dnorm(0,tau.beta.pen1)    #Prior for logit of mean recapture with random effect of pen given block
+    }
+    sigma.beta.pen1~dunif(0,5)
+    tau.beta.pen1<-pow(sigma.beta.pen1,-2)
+    sigma2.beta.pen1 <- pow(sigma.beta.pen1, 2)
+    
+    
+    
+    ##For survival
+    
+    #mean.phi~dnorm(0,0.001)
+    #mu.phi<-1/(1+exp(-mean.phi))              # Logit transformed survival grand mean/intercept
+    
+    beta.g1[1] <- 0                           # Corner constraint
+    beta.g1[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. survival compared to treatment 1
+    beta.g1[3] ~ dnorm(0, 0.01)I(-10,10)
+    beta.g1[4] ~ dnorm(0, 0.01)I(-10,10)
+    
+    beta.mass ~ dnorm(0, 0.01)I(-10, 10)     # Prior for mass slope parameter
+    for (u in 1:2){
+        beta.ctm[u] ~ dunif(0, 1)      # Prior for factor of reaching CTmax slope parameter
+    }
+    
+    for (t in 1:(n.occasions-1)){
+      epsilon.phi[t] ~ dnorm(0, tau.phi)      # Prior for survival residuals
+    }
+    sigma.phi ~ dunif(0,5)                    # Prior on standard deviation
+    tau.phi <- pow(sigma.phi, -2)
+    sigma2.phi <- pow(sigma.phi, 2)           # Residual temporal variance
+    
+    for (b in 1:nblock){
+      for (t in 1:(n.occasions-1)){
+        beta.bl[b,t] ~ dnorm(0,tau.beta.bl)   #Prior for logit of mean survival with random effect of block (random effect of block on phi)
+      }
+    }
+    sigma.beta.bl~dunif(0,5)
+    tau.beta.bl<-pow(sigma.beta.bl,-2)
+    sigma2.beta.bl <- pow(sigma.beta.bl, 2)
+    
+    for (p in 1:npen){
+      for (t in 1:(n.occasions-1)){
+        beta.pen[p,t] ~ dnorm(0,tau.beta.pen)    #Prior for logit of mean survival with random effect of pen given block
+      }
+    }
+    sigma.beta.pen~dunif(0,10)
+    tau.beta.pen<-pow(sigma.beta.pen,-2)
+    sigma2.beta.pen <- pow(sigma.beta.pen, 2)
+
+    
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture
+      z[i,f[i]] <- 1
+      for (t in (f[i]+1):n.occasions){
+        # State process
+        z[i,t] ~ dbern(mu1[i,t])
+        mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+        y[i,t] ~ dbern(mu2[i,t])
+        mu2[i,t] <- p[i,t-1] * z[i,t]
+      } #t
+    } #i
+  }
+",fill = TRUE)
+sink()
+
+
+# Bundle data
+aa.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], z = known.state.cjs(aa_CH), 
+                nblock = length(unique(block_aa)), block = as.numeric(block_aa), npen = length(unique(pen_aa)), pen = as.numeric(pen_aa),
+                mass = stdmass_aa, reach = aa_reachMax, g = length(unique(group_aa)), group = group_aa, m=m_aa)
+
+# Initial values (probably need to adjust thse to match dimensions of certain parameters)
+aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
+                            beta.g1 = c(NA, rnorm(3)), 
+                            beta.g2 = c(NA, rnorm(3)), 
+                            beta.bl1 = runif(length(unique(block_aa)), 0, 1), 
+                            beta.bl = array(runif(68, 0, 1),dim=c(4,16)), 
+                            beta.mass = runif(1, -5, 5),
+                            beta.ctm = runif(2, 0, 1),
+                            beta.pen = array(runif(384, 0, 1),dim=c(24,16)), 
+                            beta.pen1 = runif(length(unique(pen_aa)), 0, 1), 
+                            beta.m = runif (2, 0, 1),
+                            sigma.phi = runif(1, 0, 2), 
+                            sigma.p = runif(1, 0, 2), 
+                            sigma.beta.bl1= runif(1, 0, 2), 
+                            sigma.beta.bl= runif(1, 0, 2), 
+                            sigma.beta.pen1= runif(1, 0, 2), 
+                            sigma.beta.pen= runif(1, 0, 2))}
+
+# Parameters monitored
+parameters <- c( "beta.g1","beta.mass", "beta.ctm", 
+                 "sigma2.phi", "beta.m", 
+                 "beta.g2", "sigma2.p", "beta.bl1", 
+                 "beta.pen1", "beta.bl", "beta.pen", 
+                 "epsilon.phi", "epsilon.p", "phi", "p") 
+
+
+# MCMC settings
+ni <- 20000
+nt <- 5
+nb <- 8000
+nc <- 3
+
+# Call JAGS from R (JRT 55 min)
+aa.cjs.trt.mass.cov.ctmax1 <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-ctmax1.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(aa.cjs.trt.mass.cov.ctmax1)#DIC=1003.89
+plot(aa.cjs.trt.mass.cov.ctmax1)
+
+###################################################################################################
+#14. Phi(t+g+mass+temp+precip+block+pen)P(t+g+block+pen): 
 # Fully time-dependent
 # Treatment additive effect
 # Survival by mass, temperature, and precipitation
@@ -2300,7 +2457,6 @@ cat("
         p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + beta.g2[group[i]] + beta.temp1*temp[t] + beta.pre1*precip[t] + beta.bl1[block[i]] + beta.pen1[pen[i]] + epsilon.p[t])))
       } #t
     } #i
-    
     
     
     ## For recapture
@@ -2445,12 +2601,12 @@ nc <- 3
 
 # Call JAGS from R (JRT 55 min)
 aa.cjs.trt.mass.cov.tt <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-tt.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(aa.cjs.trt.mass.cov.tt)#DIC=1001.036
+print(aa.cjs.trt.mass.cov.tt)#DIC=1001.37
 plot(aa.cjs.trt.mass.cov.tt)
 
 ###################################################################################################
 #Best supported model structure based on DIC
-#9. Phi(t*g+mass+cov+block+pen)P(.*g+block+pen): 
+#15. Phi(t*g+mass+cov+block+pen)P(.*g+block+pen): 
 # FULL MODEL
 # Treatment*time effect
 # Survival by mass, temperature, and precipitation
@@ -2614,7 +2770,7 @@ for(i in 1:length(trtvals)){
 }
 ###################################################################################################
 #Fully time-dependent model
-#10. Phi(t*g+mass+cov+block+pen)P(t*g+cov+block+pen): 
+#16. Phi(t*g+mass+cov+block+pen)P(t*g+cov+block+pen): 
 # FULL MODEL
 # Treatment effect
 # Survival by mass
