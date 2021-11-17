@@ -6,6 +6,9 @@ if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
 if(!require(dplyr)) install.packages('dplyr'); library("dplyr")
 if(!require(viridis)) install.packages('viridis'); library("viridis")
 
+#install.packages("devtools")
+#devtools::install_github("tidyverse/dplyr")
+
 ## --------------
 #Nick's IPR theme
 my_theme2 <- function()
@@ -22,10 +25,10 @@ my_theme2 <- function()
 ## Import Data:
 ## --------------------------------
 
-recaps <- read_excel("Data/AMOP/Recap_Database_2019-2020-Experiments_Master_20200125.xlsx", sheet=2,na=c("NA", ""))## recapture data
-penID <- read_excel("Data/AMOP/Pens_Assignments_2019-2020-Experiments.xlsx", na=c("NA", ""))
-endfates<-read_excel("Data/AMOP/BreakdownFates_2019-2020-Experiments.xlsx",na=c("NA",""))
-sex<-read_excel("Data/AMOP/Siegel Salamander data.xlsx",na=c("NA",""))
+recaps <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMOP/Recap_Database_2019-2020-Experiments_Master_20200125.xlsx", sheet=2,na=c("NA", ""))## recapture data
+penID <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMOP/Pens_Assignments_2019-2020-Experiments.xlsx", na=c("NA", ""))
+endfates<-read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMOP/BreakdownFates_2019-2020-Experiments.xlsx",na=c("NA",""))
+sex<-read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMOP/Siegel Salamander data.xlsx",na=c("NA",""))
 endfates<-merge(endfates,sex,by="PIT_Tag")
 endfates<-merge(endfates,penID,by=c("PIT_Tag","Juv.Treat","Juv.Pen","Treatment","Species"))
 

@@ -1,0 +1,97 @@
+
+  model {
+    
+    ## Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(mean.phi + beta.e[group[i],t] + beta.b*mass[i] + beta.f*temp[t] + beta.g*precip[t] + beta.h[block[i],t] + beta.j[pen[i],t] + epsilon.phi[t])))) ^int[t]
+        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.a[group[i]] + beta.c[block[i]] + beta.d[pen[i]])))
+      } #t
+    } #i
+    
+    ## For recapture
+  
+    mean.p~dnorm(0,0.001)
+    mu.p<-1/(1+exp(-mean.p))           # Logit transformed recapture grand mean/intercept
+    
+    for (u in 1:2){
+      beta.m[u] ~ dunif(0, 1)        # Priors for previous recapture effect
+    }
+    
+    for (u in 1:g){
+      beta.a[u] ~ dunif(0, 1)          # Priors for group-specific recapture
+    }
+    
+    for (b in 1:nblock){
+      beta.c[b] ~ dnorm(0,tau.beta.c)      #Prior for logit of mean recapture with random effect of block (random effect of block on p)
+    }
+    sigma.beta.c~dunif(0,5)
+    tau.beta.c<-pow(sigma.beta.c,-2)
+    sigma2.beta.c <- pow(sigma.beta.c, 2)
+    
+    for (p in 1:npen){
+      beta.d[p] ~ dnorm(0,tau.beta.d)    #Prior for logit of mean recapture with random effect of pen given block
+    }
+    sigma.beta.d~dunif(0,5)
+    tau.beta.d<-pow(sigma.beta.d,-2)
+    sigma2.beta.d <- pow(sigma.beta.d, 2)
+    
+    
+    ##For overall survival
+    
+    mean.phi~dnorm(0,0.001)
+    mu.phi<-1/(1+exp(-mean.phi))              # Logit transformed survival grand mean/intercept
+    
+    beta.b ~ dnorm(0, 0.001)I(-10, 10)         # Prior for mass slope parameter
+
+    for (t in 1:(n.occasions-1)){
+      epsilon.phi[t] ~ dnorm(0, tau.phi)          # Prior for survival residuals
+    }
+    sigma.phi ~ dunif(0,5)                      # Prior on standard deviation
+    tau.phi <- pow(sigma.phi, -2)
+    sigma2.phi <- pow(sigma.phi, 2)             # Residual temporal variance
+    
+    for (u in 1:g){
+      for (t in 1:(n.occasions-1)){
+        beta.e[u,t] ~ dunif(0, 1)          # Prior for time and group-spec. survival
+      } #t
+    } #g
+    
+    for (b in 1:nblock){
+      for (t in 1:(n.occasions-1)){
+        beta.h[b,t] ~ dnorm(0,tau.beta.h)      #Prior for logit of mean survival with random effect of block (random effect of block on phi)
+      }
+    }
+    sigma.beta.h~dunif(0,5)
+    tau.beta.h<-pow(sigma.beta.h,-2)
+    sigma2.beta.h <- pow(sigma.beta.h, 2)
+    
+    for (p in 1:npen){
+      for (t in 1:(n.occasions-1)){
+        beta.j[p,t] ~ dnorm(0,tau.beta.j)    #Prior for logit of mean survival with random effect of pen given block
+      }
+    }
+    sigma.beta.j~dunif(0,5)
+    tau.beta.j<-pow(sigma.beta.j,-2)
+    sigma2.beta.j <- pow(sigma.beta.j, 2)
+    
+    #For covariates
+    beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter
+    beta.g ~ dnorm(0, 0.001)I(-10, 10)         # Prior for precip slope parameter
+
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture
+      z[i,f[i]] <- 1
+      for (t in (f[i]+1):n.occasions){
+        # State process
+        z[i,t] ~ dbern(mu1[i,t])
+        mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+        y[i,t] ~ dbern(mu2[i,t])
+        mu2[i,t] <- p[i,t-1] * z[i,t]
+      } #t
+    } #i
+  }
+
