@@ -1,103 +1,35 @@
 
     model {
-    
-    ## Priors and constraints
-    for (i in 1:nind){
-    for (t in f[i]:(n.occasions-1)){
-    phi[i,t] <- (1/(1+exp(-(mean.phi + beta.a[group[i]] + beta.b*mass[i] + beta.c[block[i]] + beta.d[pen[i]] + epsilon.phi[i])))) ^int[t]
-    p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.e[group[i],t] + beta.f*temp[t] + beta.g*precip[t] + beta.h[block[i],t] + beta.j[pen[i],t] + epsilon.p[t])))
-    } #t
-    } #i
-    
-    ## For survival
-    
-    mean.phi~dnorm(0,0.001)
-    mu.phi<-1/(1+exp(-mean.phi))           # Logit transformed Survival grand mean/intercept
-    
-    for (i in 1:nind){
-    epsilon.phi[i] ~ dnorm(0, tau.phi)         # Prior for individual survival residuals
-    }
-    sigma.phi ~ dunif(0,5)                     # Prior on standard deviation
-    tau.phi <- pow(sigma.phi, -2)
-    sigma2.phi <- pow(sigma.phi, 2)            # Residual temporal variance
-    
-    for (u in 1:g){
-    beta.a[u] ~ dunif(0, 1)          # Priors for species-specific survival
-    }
-    
-    for (b in 1:nblock){
-    beta.c[b] ~ dnorm(0,tau.beta.c)      #Prior for logit of mean survival with random effect of block (random effect of block on phi)
-    }
-    sigma.beta.c~dunif(0,5)
-    tau.beta.c<-pow(sigma.beta.c,-2)
-    sigma2.beta.c <- pow(sigma.beta.c, 2)
-    
-    for (p in 1:npen){
-    beta.d[p] ~ dnorm(0,tau.beta.d)    #Prior for logit of mean survival with random effect of pen given block
-    }
-    sigma.beta.d~dunif(0,5)
-    tau.beta.d<-pow(sigma.beta.d,-2)
-    sigma2.beta.d <- pow(sigma.beta.d, 2)
-    
-    beta.b ~ dnorm(0, 0.001)I(-10, 10)         # Prior for mass slope parameter
 
-    ##For overall recapture
-    
-    mean.p~dnorm(0,0.001)
-    mu.p<-1/(1+exp(-mean.p))              # Logit transformed Recapture grand mean/intercept
-    
-    for (t in 1:(n.occasions-1)){
-    epsilon.p[t] ~ dnorm(0, tau.p)          # Prior for recapture residuals
-    }
-    sigma.p ~ dunif(0,5)                    # Prior on standard deviation
-    tau.p <- pow(sigma.p, -2)
-    sigma2.p <- pow(sigma.p, 2)             # Residual temporal variance
-    
-    for (u in 1:2){
-    beta.m[u] ~ dunif(0, 1)        # Priors for time-specific recapture
-    }
-    
-    for (u in 1:g){
-    for (t in 1:(n.occasions-1)){
-    beta.e[u,t] ~ dunif(0, 1)          # Prior for time and group-spec. recapture
-    } #t
-    } #g
-    
-    for (b in 1:nblock){
-    for (t in 1:(n.occasions-1)){
-    beta.h[b,t] ~ dnorm(0,tau.beta.h)      #Prior for logit of mean recapture with random effect of block (random effect of block on p)
-    }
-    }
-    sigma.beta.h~dunif(0,5)
-    tau.beta.h<-pow(sigma.beta.h,-2)
-    sigma2.beta.h <- pow(sigma.beta.h, 2)
-    
-    for (p in 1:npen){
-    for (t in 1:(n.occasions-1)){
-    beta.j[p,t] ~ dnorm(0,tau.beta.j)    #Prior for logit of mean recapture with random effect of pen given block
-    }
-    }
-    sigma.beta.j~dunif(0,5)
-    tau.beta.j<-pow(sigma.beta.j,-2)
-    sigma2.beta.j <- pow(sigma.beta.j, 2)
-    
-    #For covariates
-    beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter
-    beta.g ~ dnorm(0, 0.001)I(-10, 10)         # Prior for precip slope parameter
-
-    
-    # Likelihood 
+    # Priors and constraints
     for (i in 1:nind){
-    # Define latent state at first capture
-    z[i,f[i]] <- 1
-    for (t in (f[i]+1):n.occasions){
-    # State process
-    z[i,t] ~ dbern(mu1[i,t])
-    mu1[i,t] <- phi[i,t-1] * z[i,t-1]
-    # Observation process
-    y[i,t] ~ dbern(mu2[i,t])
-    mu2[i,t] <- p[i,t-1] * z[i,t]
-    } #t
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (alpha[group[i]])^int[t]    # Constant survival
+        p[i,t] <- beta[m[i,t]]                  # Constant recapture
+      } #t
     } #i
+
+    for (u in 1:g){
+      alpha[u] ~ dunif(0, 1)         # Prior for treatment-specific survival
     }
-    
+
+    for(u in 1:2){
+      beta[u] ~ dunif(0, 1)         # Priors for recapture
+    }
+
+    # Likelihood
+    for (i in 1:nind){
+      # Define latent state at first capture
+      z[i,f[i]] <- 1
+
+      for (t in (f[i]+1):n.occasions){
+        # State process
+        z[i,t] ~ dbern(mu1[i,t])
+        mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+        y[i,t] ~ dbern(mu2[i,t])
+        mu2[i,t] <- p[i,t-1] * z[i,t]
+      } #t
+    } #i
+  }
+  

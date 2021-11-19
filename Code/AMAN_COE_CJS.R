@@ -466,23 +466,16 @@ amb.cjs.t.t$DIC
 amb.cjs.t.c$DIC
 amb.cjs.c.t$DIC
 
-## -----------------
-    #ARIANNE'S Full Model
-    #5. Phi(.*g+mass+block+pen)P(t*g+cov+block+pen):
-      # FULL MODEL
-      # Treatment effect
-      # Survival by mass
-      # Temperature and precipitation covariates (not yet)
-      # Time-dependent recapture and survival (best model based on DIC)
-      # Grand means
-      # With immediate trap response
+#############################################################
+# Call in and format model variables
+#############################################################
 
     group_aa<-as.numeric(as.factor(aa_ch.pa$Treatment))
     block_aa<-as.numeric(aa_ch.pa$Block)
     pen_aa<-as.numeric(as.factor(paste(aa_ch.pa$Block,aa_ch.pa$Pen,sep="")))
 
 
-    aa_abiotic <- readRDS("Results/aa_abiotic.rds")
+    aa_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/aa_abiotic.rds")
     str(aa_abiotic)
     cor.test(as.numeric(aa_abiotic$Tmin), as.numeric(aa_abiotic$Prcp)) #Not autocorrelated
 
@@ -509,6 +502,11 @@ amb.cjs.c.t$DIC
       stdmass_aa[i] <- (aa_ch.pa$Meta.Mass[i]-mean(aa_ch.pa$Meta.Mass[]))/sd(aa_ch.pa$Meta.Mass[])
     }
 
+#############################################################
+# 5.1. Phi(.+g)P(.): Model with constant parameters (from Kery & Schaub 7.3)
+# With immediate trap response
+# With treatment group effect
+#############################################################
     # Specify model in BUGS language
     sink("aa-cjs-trt-mass-cov-rand.jags")
     cat("
