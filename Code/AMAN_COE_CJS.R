@@ -255,6 +255,7 @@ amb.cjs.c.c <- jags(aa_jags.data, inits, parallel=TRUE, parameters, "amb-cjs-c-c
 # Summarize posteriors
 print(amb.cjs.c.c, digits = 3)
 
+
 ##########################################################################
 # 2. Phi(t)P(t): Model with fixed time-dependent parameters (from Kery & Schaub 7.4.1)
 # With immediate trap response
