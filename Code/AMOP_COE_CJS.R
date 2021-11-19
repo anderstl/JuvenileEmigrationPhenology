@@ -239,10 +239,10 @@ interval_ao$int<-interval_ao$days/mean(interval_ao$days,na.rm=T)
 # With immediate trap response
 #############################################################
 
-sink("ao-cjs-c-c.jags")
+sink("amb-cjs-c-c.jags")
 cat("
     model {
-
+    
     # Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
@@ -250,18 +250,18 @@ cat("
         p[i,t] <- beta[m[i,t]]                  # Constant recapture
       } #t
     } #i
-
+    
     mean.phi ~ dunif(0, 1)         # Prior for mean survival
-
+    
     for(u in 1:2){
       beta[u] ~ dunif(0, 1)         # Priors for recapture
     }
-
-    # Likelihood
+    
+    # Likelihood 
     for (i in 1:nind){
-      # Define latent state at first capture
+      # Define latent state at first capture 
       z[i,f[i]] <- 1
-
+      
       for (t in (f[i]+1):n.occasions){
         # State process
         z[i,t] ~ dbern(mu1[i,t])
@@ -271,13 +271,13 @@ cat("
         mu2[i,t] <- p[i,t-1] * z[i,t]
       } #t
     } #i
-    }
-    ",fill = TRUE)
+  }
+  ",fill = TRUE)
 sink()
 
 # Bundle data
 
-ao_jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, m=m_ao, nind = dim(ao_CH)[1],
+ao_jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, m=m_ao, nind = dim(ao_CH)[1], 
                      n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH))
 
 # Initial values
@@ -287,27 +287,28 @@ inits <- function(){list(mean.phi = runif(1, 0, 1), beta = runif(2, 0, 1), z = c
 parameters <- c("mean.phi", "beta", "phi", "p")
 
 # MCMC settings
-ni <- 50000
+ni <- 15000
 nt <- 10
-nb <- 25000
+nb <- 7000
 nc <- 3
 
 # Call JAGS from R (BRT 1 min)
-ao.cjs.c.c <- jags(ao_jags.data, inits, parallel=TRUE, parameters, "ao-cjs-c-c.jags",
+amb.cjs.c.c <- jags(ao_jags.data, inits, parallel=TRUE, parameters, "amb-cjs-c-c.jags", 
                     n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
 
 # Summarize posteriors
-print(ao.cjs.c.c, digits = 3)
+print(amb.cjs.c.c, digits = 3)
+
 
 ##########################################################################
 # 2. Phi(t)P(t): Model with fixed time-dependent parameters (from Kery & Schaub 7.4.1)
 # With immediate trap response
 ##########################################################################
 
-sink("ao-cjs-t-t.jags")
+sink("amb-cjs-t-t.jags")
 cat("
     model {
-
+    
     # Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
@@ -323,19 +324,19 @@ cat("
     for (u in 1:2){
       beta[u] ~ dunif(0, 1)        # Priors for time-specific recapture
     }
-
+    
     for (t in 1:(n.occasions-1)){
       epsilon[t] ~ dnorm(0, tau)
     }
-
+    
     sigma ~ dunif(0, 10)                     # Prior for standard deviation
     tau <- pow(sigma, -2)
     sigma2 <- pow(sigma, 2)                  # Residual temporal variance
-
-
-    # Likelihood
+    
+    
+    # Likelihood 
     for (i in 1:nind){
-      # Define latent state at first capture
+      # Define latent state at first capture 
       z[i,f[i]] <- 1
         for (t in (f[i]+1):n.occasions){
         # State process
@@ -351,36 +352,36 @@ cat("
 sink()
 
 # Bundle data
-ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1],
+ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], 
                      n.occasions = dim(ao_CH)[2])
 
 # Initial values
-inits <- function(){list(beta = runif(2, 0, 1), sigma = runif(1,0,2),
+inits <- function(){list(beta = runif(2, 0, 1), sigma = runif(1,0,2), 
                          alpha = runif(dim(ao_CH)[2]-1, 0, 1), z = known.state.cjs(ao_CH))}
 
 # Parameters monitored
 parameters <- c("alpha", "beta", "sigma2", "phi", "p")
 
 ## MCMC settings
-ni <- 50000
+ni <- 5000
 nt <- 10
-nb <- 25000
+nb <- 2500
 nc <- 3
 
 # Call JAGS from R (BRT 2 min)
-ao.cjs.t.t <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "ao-cjs-t-t.jags",
+amb.cjs.t.t <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t.jags", 
                     n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(ao.cjs.t.t)
+print(amb.cjs.t.t)
 
 #####################################################################################################
 # 3. Phi(t)P(.): Model with fixed time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
 # With immediate trap response
 ####################################################################################################
 
-sink("ao-cjs-t-c.jags")
+sink("amb-cjs-t-c.jags")
 cat("
     model {
-
+    
     # Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
@@ -388,18 +389,18 @@ cat("
         p[i,t] <- beta[m[i,t]]                  # Constant recapture
       } #t
     } #i
-
+    
     for(u in 1:2){
       beta[u] ~ dunif(0, 1)         # Priors for recapture
     }
-
+    
     for (t in 1:(n.occasions-1)){
       alpha[t] ~ dunif(0, 1)        # Prior for time-dependent survival
     }
-
-    # Likelihood
+    
+    # Likelihood 
     for (i in 1:nind){
-      # Define latent state at first capture
+      # Define latent state at first capture 
       z[i,f[i]] <- 1
         for (t in (f[i]+1):n.occasions){
         # State process
@@ -418,31 +419,32 @@ sink()
 ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], n.occasions = dim(ao_CH)[2])
 
 # Initial values
-inits <- function(){list(beta = runif(2, 0, 1), alpha = runif(dim(ao_CH)[2]-1, 0, 1),
+inits <- function(){list(beta = runif(2, 0, 1), alpha = runif(dim(ao_CH)[2]-1, 0, 1), 
                          z = known.state.cjs(ao_CH))}
 
 # Parameters monitored
 parameters <- c("alpha", "mean.p", "beta","phi", "p")
 
 # MCMC settings
-ni <- 50000
+ni <- 15000
 nt <- 10
-nb <- 25000
+nb <- 7000
 nc <- 3
 
 # Call JAGS from R (BRT 2 min)
-ao.cjs.t.c <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "ao-cjs-t-c.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(ao.cjs.t.c)
+amb.cjs.t.c <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-c.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(amb.cjs.t.c)
+plot(amb.cjs.t.c)
 
 #####################################################################################################
 # 4. Phi(.)P(t): Model with fixed constant survival and time-dependent recapture (edited from Kery & Schaub 7.4.1)
 # With immediate trap response
 ####################################################################################################
 
-sink("ao-cjs-c-t.jags")
+sink("amb-cjs-c-t.jags")
 cat("
     model {
-
+    
     # Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
@@ -450,9 +452,9 @@ cat("
         logit(p[i,t]) <- beta[m[i,t]] + epsilon[t]  # Time-dependent recapture
       } #t
     } #i
-
+    
     mean.phi ~ dunif(0,1)         # Prior for time-constant survival
-
+    
     for (u in 1:2){
       beta[u] ~ dunif(0, 1)        # Priors for time-dependent recapture
     }
@@ -460,14 +462,14 @@ cat("
     for (t in 1:(n.occasions-1)){
       epsilon[t] ~ dnorm(0, tau)
     }
-
+    
     sigma ~ dunif(0, 10)                     # Prior for standard deviation
     tau <- pow(sigma, -2)
     sigma2 <- pow(sigma, 2)                  # Residual temporal variance
-
-    # Likelihood
+    
+    # Likelihood 
     for (i in 1:nind){
-      # Define latent state at first capture
+      # Define latent state at first capture 
       z[i,f[i]] <- 1
         for (t in (f[i]+1):n.occasions){
         # State process
@@ -483,7 +485,7 @@ cat("
 sink()
 
 # Bundle data
-ao_jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], n.occasions = dim(ao_CH)[2], m=m_ao)
+ao_jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], n.occasions = dim(ao_CH)[2], m=m)
 
 # Initial values
 inits <- function(){list(mean.phi = runif(1, 0, 1), beta = runif(2, 0, 1), z = known.state.cjs(ao_CH),
@@ -493,178 +495,69 @@ inits <- function(){list(mean.phi = runif(1, 0, 1), beta = runif(2, 0, 1), z = k
 parameters <- c("beta", "mean.phi", "sigma2", "phi", "p")
 
 # MCMC settings
-ni <- 50000
+ni <- 15000
 nt <- 10
-nb <- 25000
+nb <- 7000
 nc <- 3
 
 # Call JAGS from R (BRT 1.87 min)
-ao.cjs.c.t <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "ao-cjs-c-t.jags",
+amb.cjs.c.t <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-c-t.jags", 
                     n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(ao.cjs.c.t)
+print(amb.cjs.c.t)
 
-# Check DIC values for models ---------------------------------------------
+#############################################################
+## Format data to add predictors
+#############################################################
+#define groups, blocks and pens
+ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L1J1", "J1", ao_ch.pa$Treatment) #Create juvenile-only treatment factor
+ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L3J1", "J1", ao_ch.pa$Treatment2)
+ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L3J3", "J3", ao_ch.pa$Treatment2)
+ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L1J3", "J3", ao_ch.pa$Treatment2)
 
-ao.cjs.c.c$DIC
-ao.cjs.t.t$DIC
-ao.cjs.t.c$DIC
-ao.cjs.c.t$DIC
+group_ao<-as.numeric(as.factor(ao_ch.pa$Treatment))
+group2_ao<-as.numeric(as.factor(ao_ch.pa$Treatment2))
+block_ao<-as.numeric(ao_ch.pa$Block)
+pen_ao<-as.numeric(as.factor(paste(ao_ch.pa$Block,ao_ch.pa$Pen,sep="")))
 
-# Specify model in BUGS language
-sink("ao-cjs-trt-mass-cov-rand.jags")
-cat("
-    model {
-    
-    ## Priors and constraints
-    for (i in 1:nind){
-      for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (1/(1+exp(-(mean.phi + beta.a[group[i]] + beta.b*mass[i] + beta.c[block[i]] + beta.d[pen[i]] + epsilon.phi[i])))) ^int[t] 
-        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + beta.e[group[i],t] + beta.f*temp[t] + beta.g*precip[t]+ beta.h[block[i],t] + beta.j[pen[i],t] +  epsilon.p[t])))  
-      } #t
-    } #i
-    
-    ## For survival
-    
-    mean.phi~dnorm(0,0.001)
-    mu.phi<-1/(1+exp(-mean.phi))           # Logit transformed Survival grand mean/intercept
-    
-    for (i in 1:nind){
-      epsilon.phi[i] ~ dnorm(0, tau.phi)         # Prior for individual survival residuals
-    }
-    
-    sigma.phi ~ dunif(0,5)                     # Prior on standard deviation
-    tau.phi <- pow(sigma.phi, -2)
-    sigma2.phi <- pow(sigma.phi, 2)            # Residual temporal variance
-    
-    for (u in 1:g){
-      beta.a[u] ~ dunif(0, 1)          # Priors for treatment-specific survival
-    }
-    
-    for (b in 1:nblock){
-      beta.c[b] ~ dnorm(0,tau.beta.c)      #Prior for logit of mean survival with random effect of block (random effect of block on phi)
-    }
-    
-    sigma.beta.c~dunif(0,5)
-    tau.beta.c<-pow(sigma.beta.c,-2)
-    sigma2.beta.c <- pow(sigma.beta.c, 2)
+#define abiotic covariates
+ao_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
+ao_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
+str(ao_abiotic)
+cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
 
-    for (p in 1:npen){
-      beta.d[p] ~ dnorm(0,tau.beta.d)    #Prior for logit of mean survival with random effect of pen given block
-    }
-    sigma.beta.d~dunif(0,5)
-    tau.beta.d<-pow(sigma.beta.d,-2)
-    sigma2.beta.d <- pow(sigma.beta.d, 2)
+ao_abiotic$Tmin <- as.numeric(ao_abiotic$Tmin)
+ao_stdtempc<-rep(NA,length(ao_abiotic$Tmin))
+ao_abiotic$Prcp <- as.numeric(ao_abiotic$Prcp)
+ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
+ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
+ao_stdpropMax<-rep(NA,length(ao_abiotic$propMax))
+ao_reachMax<-as.numeric(factor(c(1, 1, 1, rep(0,13)))) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
+#ao_abiotic$temp.sd <- as.numeric(ao_abiotic$temp.sd)
+#ao_stdtempsd<-rep(NA,length(ao_abiotic$temp.sd))
+hist(ao_abiotic$Tmin)
+shapiro.test(ao_abiotic$Tmin)
 
-    beta.b ~ dnorm(0, 0.001)I(-10, 10)         # Prior for mass slope parameter
+hist(ao_abiotic$Prcp)
+shapiro.test(ao_abiotic$Prcp)
+hist(log(ao_abiotic$Prcp+1))
+shapiro.test(log(ao_abiotic$Prcp+1))
 
-    ##For overall recapture
-    
-    mean.p~dnorm(0,0.001)
-    mu.p<-1/(1+exp(-mean.p))              # Logit transformed Recapture grand mean/intercept
-    
-    for (t in 1:(n.occasions-1)){
-      epsilon.p[t] ~ dnorm(0, tau.p)          # Prior for recapture residuals
-    }
-    sigma.p ~ dunif(0,5)                    # Prior on standard deviation
-    tau.p <- pow(sigma.p, -2)
-    sigma2.p <- pow(sigma.p, 2)             # Residual temporal variance
-    
-    for (u in 1:2){
-      beta.m[u] ~ dunif(0, 1)        # Priors for time-specific recapture
-    }
-    
-    for (u in 1:g){
-      for (t in 1:(n.occasions-1)){
-        beta.e[u,t] ~ dunif(0, 1)          # Prior for time and group-spec. recapture
-      } #t
-    } #g
-    
-    for (b in 1:nblock){
-      for (t in 1:(n.occasions-1)){
-        beta.h[b,t] ~ dnorm(0,tau.beta.h)      #Prior for logit of mean recapture with random effect of block (random effect of block on p)
-      }
-    }
-    sigma.beta.h~dunif(0,5)
-    tau.beta.h<-pow(sigma.beta.h,-2)
-    sigma2.beta.h <- pow(sigma.beta.h, 2)
-    
-    for (p in 1:npen){
-      for (t in 1:(n.occasions-1)){
-        beta.j[p,t] ~ dnorm(0,tau.beta.j)    #Prior for logit of mean recapture with random effect of pen given block
-      }
-    }
-    sigma.beta.j~dunif(0,5)
-    tau.beta.j<-pow(sigma.beta.j,-2)
-    sigma2.beta.j <- pow(sigma.beta.j, 2)
-    
-    #For covariates
-    beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter
-    beta.g ~ dnorm(0, 0.001)I(-10, 10)         # Prior for precip slope parameter
+ao_abiotic$log.Prcp<-log(ao_abiotic$Prcp+1)
 
-    
-    # Likelihood 
-    for (i in 1:nind){
-      # Define latent state at first capture
-      z[i,f[i]] <- 1
-        for (t in (f[i]+1):n.occasions){
-          # State process
-          z[i,t] ~ dbern(mu1[i,t])
-          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
-          
-          # Observation process
-          y[i,t] ~ dbern(mu2[i,t])
-          mu2[i,t] <- p[i,t-1] * z[i,t]
-        } #t
-      } #i
-    }
-    ",fill = TRUE)
-sink()
+#Scale temp. and Prcp. covariates
+for (i in 1:length(ao_abiotic$Tmin)) {
+  ao_stdtempc[i] <- (ao_abiotic$Tmin[i]-mean(ao_abiotic$Tmin[]))/sd(ao_abiotic$Tmin[])
+  #stdtempsd[i] <- (ao_abiotic$temp.sd[i]-mean(ao_abiotic$temp.sd[]))/sd(ao_abiotic$temp.sd[])
+  ao_stdprecip[i] <- (ao_abiotic$log.Prcp[i]-mean(ao_abiotic$log.Prcp[]))/sd(ao_abiotic$log.Prcp[])
+  ao_stdpropMax[i] <- (ao_abiotic$propMax[i]-mean(ao_abiotic$propMax[]))/sd(ao_abiotic$propMax[])
+}
 
+#define body mass covariate
+#amb$mass <- as.numeric(ao_$mass)
+ao_ch.pa$Meta.Mass[is.na(ao_ch.pa$Meta.Mass)]<-mean(ao_ch.pa$Meta.Mass,na.rm=T)
+stdmass_ao<-rep(NA,length(ao_ch.pa$Meta.Mass))
 
-# Bundle data
-ao_jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH), 
-                  nblock = length(unique(block_ao)), block = as.numeric(block_ao), npen = length(unique(pen_ao)), pen = as.numeric(pen_ao),
-                  mass=stdmass_ao, g = length(unique(group_ao)), group=group_ao, m=m_ao,temp = ao_stdtempc, precip = ao_stdprecip)
-
-# Initial values (probably need to adjust thse to match dimensions of certain parameters)
-ao_inits <- function(){list(z = cjs.init.z(ao_CH,f_ao), 
-                         sigma.phi = runif(1, 0, 2), 
-                         sigma.p = runif(1, 0, 2), 
-                         mean.phi = runif(1, 0, 1), 
-                         mean.p = runif(1, 0, 1), 
-                         beta.f = runif(1, -5, 5), 
-                         beta.g = runif(1, -5, 5),
-                         beta.e = array(runif(56, 0, 1),dim=c(length(unique(group_ao)),14)), #groups by recaps
-                         beta.a = runif(length(unique(group_ao)), 0, 1), 
-                         beta.c = runif(length(unique(block_ao)), 0, 1), 
-                         beta.h = array(runif(28, 0, 1),dim=c(length(unique(block_ao)),14)), #blocks by recaps
-                         sigma.beta.c= runif(1, 0, 2), 
-                         sigma.beta.h= runif(1, 0, 2), 
-                         beta.b = runif(1, -5, 5),
-                         beta.j = array(runif(224, 0, 1),dim=c(length(unique(pen_ao)),14)), 
-                         beta.d = runif(length(unique(pen_ao)), 0, 1), 
-                         sigma.beta.d= runif(1, 0, 2), 
-                         sigma.beta.j= runif(1, 0, 2), 
-                         beta.m = runif (2, 0, 1))}  
-
-# Parameters monitored
-parameters <- c("mu.phi", "mean.phi", "beta.b", "mu.p", 
-                "mean.p", "beta.m", "sigma2.phi", "sigma2.p", 
-                "beta.f","beta.g", "beta.a", "sigma2.beta.c", 
-                "sigma2.beta.d", "sigma2.beta.h", "sigma2.beta.j", 
-                "beta.c", "beta.d", "beta.e", "beta.h", "beta.j", 
-                "epsilon.phi", "epsilon.p", "phi", "p") 
-
-# MCMC settings
-ni <- 1000
-nt <- 5
-nb <- 500
-nc <- 3
-
-# Call JAGS from R (JRT 55 min)
-ao.cjs.trt.mass.cov.rand <- jags(ao_jags.data, parallel=TRUE, ao_inits, parameters, 
-                                 "ao-cjs-trt-mass-cov-rand.jags", n.chains = nc, 
-                                 n.thin = nt, n.iter = ni, n.burnin = nb)
-print(ao.cjs.trt.mass.cov.rand)
-
-plot(ao.cjs.trt.mass.cov.rand)
+#Scale mass covariate
+for (i in 1:length(ao_ch.pa$Meta.Mass)) {
+  stdmass_ao[i] <- (ao_ch.pa$Meta.Mass[i]-mean(ao_ch.pa$Meta.Mass[]))/sd(ao_ch.pa$Meta.Mass[])
+}
