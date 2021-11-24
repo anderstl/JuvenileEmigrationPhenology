@@ -441,7 +441,7 @@ cat("
 sink()
 
 # Bundle data
-aa_jags.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], m=m)
+aa_jags.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], m=m_aa)
 
 # Initial values
 inits <- function(){list(mean.phi = runif(1, 0, 1), beta = runif(2, 0, 1), z = known.state.cjs(aa_CH),
@@ -1161,7 +1161,7 @@ legend(x = 10, y=.5, bty = 'n',
        lwd=c(3,2), pch=c(1,6), lty=c(3,2), cex=2.5,  col=c("salmon1", "deepskyblue3"))
 #dev.off()
 ###################################################################################################
-#Messerman et al., (2020) Full Model
+#Messerman et al., (2020) Full Model ****Does not converge
 #8. Phi(.*g+mass+block+pen)P(t*g+cov+block+pen): 
 # FULL MODEL
 # Treatment effect
@@ -1334,7 +1334,7 @@ for(i in 1:length(trtvals)){
 
     
 ###################################################################################################
-#Best supported model structure based on DIC
+#Best supported model structure based on DIC ****Does not converge
 #9. Phi(t+g+mass+temp+precip+block+pen)P(.+g+block+pen): 
 # FULL MODEL
 # Treatment additive effect
@@ -2606,7 +2606,7 @@ print(aa.cjs.trt.mass.cov.tt)#DIC=1001.37
 plot(aa.cjs.trt.mass.cov.tt)
 
 ###################################################################################################
-#Best supported model structure based on DIC
+#Best supported model structure based on DIC ****Does not converge
 #15. Phi(t*g+mass+cov+block+pen)P(.*g+block+pen): 
 # FULL MODEL
 # Treatment*time effect
@@ -2770,7 +2770,7 @@ for(i in 1:length(trtvals)){
   trt.cont[,i]<-(aa.cjs.trt.mass.cov.rand1$sims.list$beta.e[,trtvals[[i]][[1]]]-aa.cjs.trt.mass.cov.rand1$sims.list$beta.e[,trtvals[[i]][[2]]])
 }
 ###################################################################################################
-#Fully time-dependent model
+#Fully time-dependent model ****Does not converge ****Does not converge
 #16. Phi(t*g+mass+cov+block+pen)P(t*g+cov+block+pen): 
 # FULL MODEL
 # Treatment effect

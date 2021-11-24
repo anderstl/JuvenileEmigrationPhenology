@@ -4,10 +4,11 @@
     ## Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (1/(1+exp(-(beta.g1[group[i]] + beta.mass*mass[i] + beta.temp*temp[t] + beta.pre*precip[t] + beta.bl[block[i],t] + beta.pen[pen[i],t] + epsilon.phi[t]))))^int[t]
-        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + beta.g2[group[i]] + beta.temp1*temp[t] + beta.pre1*precip[t] + beta.bl1[block[i]] + beta.pen1[pen[i]] + epsilon.p[t])))
+        phi[i,t] <- (1/(1+exp(-( beta.g1[group[i]] + beta.mass*mass[i] + beta.ctm[reach[t]] + beta.bl[block[i],t] + beta.pen[pen[i],t] + epsilon.phi[t]))))^int[t]
+        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + beta.g2[group[i]] + beta.bl1[block[i]] + beta.pen1[pen[i]])))
       } #t
     } #i
+    
     
     
     ## For recapture
@@ -24,9 +25,6 @@
     beta.g2[3] ~ dnorm(0, 0.01)I(-10,10)
     beta.g2[4] ~ dnorm(0, 0.01)I(-10,10)
     
-    beta.temp1 ~ dnorm(0, 1)I(-15, 15)     # Prior for temp slope parameter
-    beta.pre1 ~ dnorm(0, 0.01)I(-10, 10)      # Prior for precip slope parameter
-    
     for (b in 1:nblock){
       beta.bl1[b] ~ dnorm(0,tau.beta.bl1)      #Prior for logit of mean recapture with random effect of block (random effect of block on p)
     }
@@ -41,12 +39,6 @@
     tau.beta.pen1<-pow(sigma.beta.pen1,-2)
     sigma2.beta.pen1 <- pow(sigma.beta.pen1, 2)
     
-    for (t in 1:(n.occasions-1)){
-      epsilon.p[t] ~ dnorm(0, tau.p)      # Prior for recapture residuals
-    }
-    sigma.p ~ dunif(0,5)                    # Prior on standard deviation
-    tau.p <- pow(sigma.p, -2)
-    sigma2.p <- pow(sigma.p, 2)           # Residual temporal variance
     
     
     ##For survival
@@ -60,9 +52,10 @@
     beta.g1[4] ~ dnorm(0, 0.01)I(-10,10)
     
     beta.mass ~ dnorm(0, 0.01)I(-10, 10)     # Prior for mass slope parameter
-    beta.temp ~ dnorm(0, 1)I(-15, 15)     # Prior for temp slope parameter
-    beta.pre ~ dnorm(0, 0.01)I(-10, 10)      # Prior for precip slope parameter
-
+    for (u in 1:2){
+        beta.ctm[u] ~ dunif(0, 1)      # Prior for factor of reaching CTmax slope parameter
+    }
+    
     for (t in 1:(n.occasions-1)){
       epsilon.phi[t] ~ dnorm(0, tau.phi)      # Prior for survival residuals
     }

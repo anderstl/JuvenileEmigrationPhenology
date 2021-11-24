@@ -1,6 +1,6 @@
 
     model {
-
+    
     # Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
@@ -8,18 +8,18 @@
         p[i,t] <- beta[m[i,t]]                  # Constant recapture
       } #t
     } #i
-
+    
     mean.phi ~ dunif(0, 1)         # Prior for mean survival
-
+    
     for(u in 1:2){
       beta[u] ~ dunif(0, 1)         # Priors for recapture
     }
-
-    # Likelihood
+    
+    # Likelihood 
     for (i in 1:nind){
-      # Define latent state at first capture
+      # Define latent state at first capture 
       z[i,f[i]] <- 1
-
+      
       for (t in (f[i]+1):n.occasions){
         # State process
         z[i,t] ~ dbern(mu1[i,t])
@@ -29,5 +29,5 @@
         mu2[i,t] <- p[i,t-1] * z[i,t]
       } #t
     } #i
-    }
-    
+  }
+  
