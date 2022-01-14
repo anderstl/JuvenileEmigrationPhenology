@@ -297,12 +297,13 @@ amb.cjs.c.c <- jags(ao_jags.data, inits, parallel=TRUE, parameters, "amb-cjs-c-c
                     n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
 
 # Summarize posteriors
-print(amb.cjs.c.c, digits = 3)
+print(amb.cjs.c.c, digits = 3)#DIC = 1828.8
 
 
 ##########################################################################
 # 2. Phi(t)P(t): Model with fixed time-dependent parameters (from Kery & Schaub 7.4.1)
-# With immediate trap response
+# With immediate trap response 
+# Best based on DIC
 ##########################################################################
 
 sink("amb-cjs-t-t.jags")
@@ -371,7 +372,8 @@ nc <- 3
 # Call JAGS from R (BRT 2 min)
 amb.cjs.t.t <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t.jags", 
                     n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.t.t)
+
+print(amb.cjs.t.t)#DIC = 1361.6
 
 #####################################################################################################
 # 3. Phi(t)P(.): Model with fixed time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
@@ -433,7 +435,7 @@ nc <- 3
 
 # Call JAGS from R (BRT 2 min)
 amb.cjs.t.c <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-c.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.t.c)
+print(amb.cjs.t.c)#DIC = 1573.5
 plot(amb.cjs.t.c)
 
 #####################################################################################################
@@ -503,7 +505,8 @@ nc <- 3
 # Call JAGS from R (BRT 1.87 min)
 amb.cjs.c.t <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-c-t.jags", 
                     n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.c.t)
+
+print(amb.cjs.c.t)#DIC = 1462.38
 
 #############################################################
 ## Format data to add predictors
