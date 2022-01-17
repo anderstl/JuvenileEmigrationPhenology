@@ -105,7 +105,7 @@ ao_df<- df%>%
 
 ag.recaps<-ao_df%>%
   mutate(Period=as.numeric(as.character(Period)))%>%
-  group_by(PIT_Tag,Juv.Treat,Rel.Block,Rel.Pen,Period)%>%
+  group_by(PIT_Tag, Juv.Treat,Rel.Block,Rel.Pen,Period, Meta.Mass.g)%>%
   summarise(Nobs=sum(Pre.Alive))%>%
   mutate(Pre.Alive=Nobs)%>%
   mutate(Pre.Alive=if_else(Pre.Alive>=1,1,Pre.Alive))%>%
@@ -512,19 +512,19 @@ print(amb.cjs.c.t)#DIC = 1462.38
 ## Format data to add predictors
 #############################################################
 #define groups, blocks and pens
-ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L1J1", "J1", ao_ch.pa$Treatment) #Create juvenile-only treatment factor
-ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L3J1", "J1", ao_ch.pa$Treatment2)
-ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L3J3", "J3", ao_ch.pa$Treatment2)
-ao_ch.pa$Treatment2<-ifelse(ao_ch.pa$Treatment=="L1J3", "J3", ao_ch.pa$Treatment2)
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J1", "J1", ao_wide$Juv.Treat) #Create juvenile-only treatment factor
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J1", "J1", ao_wide$Treatment2)
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J3", "J3", ao_wide$Treatment2)
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J3", "J3", ao_wide$Treatment2)
 
-group_ao<-as.numeric(as.factor(ao_ch.pa$Treatment))
-group2_ao<-as.numeric(as.factor(ao_ch.pa$Treatment2))
-block_ao<-as.numeric(ao_ch.pa$Block)
-pen_ao<-as.numeric(as.factor(paste(ao_ch.pa$Block,ao_ch.pa$Pen,sep="")))
+group_ao<-as.numeric(as.factor(ao_wide$Juv.Treat))
+group2_ao<-as.numeric(as.factor(ao_wide$Treatment2))
+block_ao<-as.numeric(ao_wide$Rel.Block)
+pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
 
 #define abiotic covariates
 ao_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
-ao_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
+#ao_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
 str(ao_abiotic)
 cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
 
@@ -533,8 +533,8 @@ ao_stdtempc<-rep(NA,length(ao_abiotic$Tmin))
 ao_abiotic$Prcp <- as.numeric(ao_abiotic$Prcp)
 ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
 ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
-ao_stdpropMax<-rep(NA,length(ao_abiotic$propMax))
-ao_reachMax<-as.numeric(factor(c(1, 1, 1, rep(0,13)))) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
+#ao_stdpropMax<-rep(NA,length(ao_abiotic$propMax))
+#ao_reachMax<-as.numeric(factor(c(1, 1, 1, rep(0,13)))) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
 #ao_abiotic$temp.sd <- as.numeric(ao_abiotic$temp.sd)
 #ao_stdtempsd<-rep(NA,length(ao_abiotic$temp.sd))
 hist(ao_abiotic$Tmin)
@@ -552,17 +552,17 @@ for (i in 1:length(ao_abiotic$Tmin)) {
   ao_stdtempc[i] <- (ao_abiotic$Tmin[i]-mean(ao_abiotic$Tmin[]))/sd(ao_abiotic$Tmin[])
   #stdtempsd[i] <- (ao_abiotic$temp.sd[i]-mean(ao_abiotic$temp.sd[]))/sd(ao_abiotic$temp.sd[])
   ao_stdprecip[i] <- (ao_abiotic$log.Prcp[i]-mean(ao_abiotic$log.Prcp[]))/sd(ao_abiotic$log.Prcp[])
-  ao_stdpropMax[i] <- (ao_abiotic$propMax[i]-mean(ao_abiotic$propMax[]))/sd(ao_abiotic$propMax[])
+  #ao_stdpropMax[i] <- (ao_abiotic$propMax[i]-mean(ao_abiotic$propMax[]))/sd(ao_abiotic$propMax[])
 }
 
 #define body mass covariate
 #amb$mass <- as.numeric(ao_$mass)
-ao_ch.pa$Meta.Mass[is.na(ao_ch.pa$Meta.Mass)]<-mean(ao_ch.pa$Meta.Mass,na.rm=T)
-stdmass_ao<-rep(NA,length(ao_ch.pa$Meta.Mass))
+ao_wide$Meta.Mass.g[is.na(ao_wide$Meta.Mass.g)]<-mean(ao_wide$Meta.Mass.g,na.rm=T)
+stdmass_ao<-rep(NA,length(ao_wide$Meta.Mass.g))
 
 #Scale mass covariate
-for (i in 1:length(ao_ch.pa$Meta.Mass)) {
-  stdmass_ao[i] <- (ao_ch.pa$Meta.Mass[i]-mean(ao_ch.pa$Meta.Mass[]))/sd(ao_ch.pa$Meta.Mass[])
+for (i in 1:length(ao_wide$Meta.Mass.g)) {
+  stdmass_ao[i] <- (ao_wide$Meta.Mass.g[i]-mean(ao_wide$Meta.Mass.g[]))/sd(ao_wide$Meta.Mass.g[])
 }
 
 #############################################################
@@ -613,7 +613,7 @@ sink()
 
 ao_jags.data <- list(y = ao_CH, int=interval_ao$int, f = f_ao, m=m_ao, nind = dim(ao_CH)[1], 
                      n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH), 
-                     g = length(unique(group_ao)), group=group_ao)
+                     g = length(unique(group_ao)), group = group_ao)
 
 # Initial values
 inits <- function(){list(alpha = runif(4, 0, 1), beta = runif(2, 0, 1), z = cjs.init.z(ao_CH,f_ao))}
@@ -634,19 +634,19 @@ amb.cjs.c.c.trt <- jags(ao_jags.data, inits, parallel=TRUE, parameters, "amb-cjs
 # Summarize posteriors
 print(amb.cjs.c.c.trt, digits = 3)
 
-plot(density(amb.cjs.c.c.trt$sims.list$alpha[,1]))#L3J3
-lines(density(amb.cjs.c.c.trt$sims.list$alpha[,2]), col=2)#L3J1
-lines(density(amb.cjs.c.c.trt$sims.list$alpha[,3]), col=3)#L1J3
-lines(density(amb.cjs.c.c.trt$sims.list$alpha[,4]), col=4)#L1J1
+plot(density(amb.cjs.c.c.trt$sims.list$alpha[,1]))#L1J1
+lines(density(amb.cjs.c.c.trt$sims.list$alpha[,2]), col=2)#L1J3
+lines(density(amb.cjs.c.c.trt$sims.list$alpha[,3]), col=3)#L3J1
+lines(density(amb.cjs.c.c.trt$sims.list$alpha[,4]), col=4)#L3J3
 
 #If difference of posteriors overlaps zero, no significant difference
-plot(density(amb.cjs.c.c.trt$sims.list$alpha[,1]-amb.cjs.c.c.trt$sims.list$alpha[,2]))# Most different combination
+plot(density(amb.cjs.c.c.trt$sims.list$alpha[,1]-amb.cjs.c.c.trt$sims.list$alpha[,2]))
 plot(density(amb.cjs.c.c.trt$sims.list$alpha[,1]-amb.cjs.c.c.trt$sims.list$alpha[,3]))
 plot(density(amb.cjs.c.c.trt$sims.list$alpha[,1]-amb.cjs.c.c.trt$sims.list$alpha[,4]))
 plot(density(amb.cjs.c.c.trt$sims.list$alpha[,2]-amb.cjs.c.c.trt$sims.list$alpha[,3]))
 plot(density(amb.cjs.c.c.trt$sims.list$alpha[,2]-amb.cjs.c.c.trt$sims.list$alpha[,4]))
 plot(density(amb.cjs.c.c.trt$sims.list$alpha[,3]-amb.cjs.c.c.trt$sims.list$alpha[,4]))
-#All overlap zero
+
 
 #############################################################
 # 5.1. Phi(.+g)P(.): Model with constant parameters (from Kery & Schaub 7.3)
