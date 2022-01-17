@@ -1,0 +1,53 @@
+
+    model {
+    
+    # Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(alpha[group[i]] + gamma[t]))))^int[t]     # Time-dependent survival
+        p[i,t] <- (1/(1+exp(-(beta[m[i,t]] + alpha.p[group[i]] + gamma.p[t]))))         # Time and treatment-dependentrecapture
+      } #t
+    } #i
+    
+    for(u in 1:2){
+      beta[u] ~ dunif(0, 1)              # Priors for recapture
+    }
+    
+    alpha[1] <- 0                        # Corner constraint
+    alpha.p[1] <- 0  
+    for(u in 2:4){
+      alpha[u] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. survival compared to treatment 1
+      alpha.p[u] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. recapture compared to treatment 1
+    }
+    
+    
+    for(t in 1:(n.occasions-1)){
+      gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      gamma.p[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      
+      phi.trt31[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]))             # Back-transformed survival of treatment 1
+      phi.trt32[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[2]))    # Back-transformed survival of treatment 2
+      phi.trt33[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[3]))    # Back-transformed survival of treatment 3
+      phi.trt34[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[4]))    # Back-transformed survival of treatment 4
+      
+      p.trt31[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]))             # Back-transformed recapture of treatment 1
+      p.trt32[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha.p[2]))    # Back-transformed recapture of treatment 2
+      p.trt33[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha.p[3]))    # Back-transformed recapture of treatment 3
+      p.trt34[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha.p[4]))    # Back-transformed recapture of treatment 4
+    }
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture 
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+        # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    

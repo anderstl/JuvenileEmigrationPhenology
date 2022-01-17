@@ -1,0 +1,45 @@
+
+    model {
+    
+    # Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(alpha[group[i]] + gamma[t]))))^int[t]     # Time and treatment-dependent survival
+        p[i,t] <- (1/(1+exp(-(beta[m[i,t]] + gamma.p[t]))))               # Time-dependent  recapture
+      } #t
+    } #i
+    
+    for(u in 1:2){
+      beta[u] ~ dunif(0, 1)              # Priors for recapture
+    }
+    
+    alpha[1] <- 0                        # Corner constraint
+    for(u in 2:4){
+      alpha[u] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. survival compared to treatment 1
+    }
+    
+    for(t in 1:(n.occasions-1)){
+      gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      gamma.p[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      
+      phi.trt21[t] <- 1/(1 + exp(-gamma[t]))             # Back-transformed survival of treatment 1
+      phi.trt22[t] <- 1/(1 + exp(-gamma[t]-alpha[2]))    # Back-transformed survival of treatment 2
+      phi.trt23[t] <- 1/(1 + exp(-gamma[t]-alpha[3]))    # Back-transformed survival of treatment 3
+      phi.trt24[t] <- 1/(1 + exp(-gamma[t]-alpha[4]))    # Back-transformed survival of treatment 4
+    }
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture 
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+        # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    

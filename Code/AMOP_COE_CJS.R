@@ -636,7 +636,7 @@ print(amb.cjs.c.c.trt, digits = 3)
 
 plot(density(amb.cjs.c.c.trt$sims.list$alpha[,1]))#L1J1
 lines(density(amb.cjs.c.c.trt$sims.list$alpha[,2]), col=2)#L1J3
-lines(density(amb.cjs.c.c.trt$sims.list$alpha[,3]), col=3)#L3J1
+lines(density(amb.cjs.c.c.trt$sims.list$alpha[,3]), col=3)#L3J1, differs from other groups; closest to L3J3
 lines(density(amb.cjs.c.c.trt$sims.list$alpha[,4]), col=4)#L3J3
 
 #If difference of posteriors overlaps zero, no significant difference
@@ -723,6 +723,7 @@ lines(density(amb.cjs.c.c.trt2$sims.list$alpha[,2]), col=2)#J3
 
 #If difference of posteriors overlaps zero, no significant difference
 plot(density(amb.cjs.c.c.trt2$sims.list$alpha[,1]-amb.cjs.c.c.trt2$sims.list$alpha[,2]))
+#No juvenile-only effect
 
 #####################################################################################################
 # 6. Phi(g+t)P(.): Model with fixed time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
@@ -784,7 +785,7 @@ ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = di
 
 # Initial values
 inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(3)), 
-                         gamma = rnorm(16), z = cjs.init.z(ao_CH,f_ao))}
+                         gamma = rnorm(14), z = cjs.init.z(ao_CH,f_ao))}
 
 # Parameters monitored
 parameters <- c("alpha", "phi.trt1", "phi.trt2", "phi.trt3", "phi.trt4", "gamma", "beta","phi", "p")
@@ -799,11 +800,11 @@ nc <- 3
 amb.cjs.t.c.trt <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-c-trt.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
 print(amb.cjs.t.c.trt)
 
-plot(c(1:16), amb.cjs.t.c.trt$mean$phi.trt1, lty=1)
-lines(c(1:16), amb.cjs.t.c.trt$mean$phi.trt1, col=1)
-lines(c(1:16), amb.cjs.t.c.trt$mean$phi.trt2, col=2)
-lines(c(1:16), amb.cjs.t.c.trt$mean$phi.trt3, col=3)
-lines(c(1:16), amb.cjs.t.c.trt$mean$phi.trt4, col=4)
+plot(c(1:14), amb.cjs.t.c.trt$mean$phi.trt1, lty=1)
+lines(c(1:14), amb.cjs.t.c.trt$mean$phi.trt1, col=1)
+lines(c(1:14), amb.cjs.t.c.trt$mean$phi.trt2, col=2)
+lines(c(1:14), amb.cjs.t.c.trt$mean$phi.trt3, col=3)
+lines(c(1:14), amb.cjs.t.c.trt$mean$phi.trt4, col=4)
 
 plot(density(amb.cjs.t.c.trt$sims.list$alpha[,1]), xlim=c(-3,3))#L3J3
 lines(density(amb.cjs.t.c.trt$sims.list$alpha[,2]), col=2)#L3J1
@@ -820,12 +821,12 @@ plot(density(amb.cjs.t.c.trt$sims.list$alpha[,3]-amb.cjs.t.c.trt$sims.list$alpha
 #All overlap zero
 
 #####################################################################################################
-# 6.1. Phi(g+t)P(.): Model with fixed time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
+# 7. Phi(g+t)P(t): Model with fixed time-dependent survival and recapture (edited from Kery & Schaub 7.4.1)
 # With immediate trap response
-# With fixed juvenile-only group and time effects on survival
+# With fixed group and time effects on survival and time effects on recapture
 ####################################################################################################
 
-sink("amb-cjs-t-c-trt2.jags")
+sink("amb-cjs-t-t-trt.jags")
 cat("
     model {
     
@@ -833,7 +834,7 @@ cat("
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
         phi[i,t] <- (1/(1+exp(-(alpha[group[i]] + gamma[t]))))^int[t]     # Time and treatment-dependent survival
-        p[i,t] <- beta[m[i,t]]                                     # Constant recapture
+        p[i,t] <- (1/(1+exp(-(beta[m[i,t]] + gamma.p[t]))))               # Time-dependentrecapture
       } #t
     } #i
     
@@ -842,13 +843,18 @@ cat("
     }
     
     alpha[1] <- 0                        # Corner constraint
-    alpha[2] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. survival compared to treatment 1
+    for(u in 2:4){
+      alpha[u] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. survival compared to treatment 1
+    }
     
     for(t in 1:(n.occasions-1)){
       gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      gamma.p[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
       
       phi.trt21[t] <- 1/(1 + exp(-gamma[t]))             # Back-transformed survival of treatment 1
       phi.trt22[t] <- 1/(1 + exp(-gamma[t]-alpha[2]))    # Back-transformed survival of treatment 2
+      phi.trt23[t] <- 1/(1 + exp(-gamma[t]-alpha[3]))    # Back-transformed survival of treatment 3
+      phi.trt24[t] <- 1/(1 + exp(-gamma[t]-alpha[4]))    # Back-transformed survival of treatment 4
     }
     
     # Likelihood 
@@ -871,14 +877,14 @@ sink()
 # Bundle data
 ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], 
                      n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH), 
-                     g = length(unique(group2_ao)), group=group2_ao)
+                     g = length(unique(group_ao)), group=group_ao)
 
 # Initial values
-inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(1)), 
-                         gamma = rnorm(16), z = cjs.init.z(ao_CH,f_ao))}
+inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(3)), 
+                         gamma = rnorm(14), gamma.p = rnorm(14), z = cjs.init.z(ao_CH,f_ao))}
 
 # Parameters monitored
-parameters <- c("alpha", "phi.trt21", "phi.trt22", "gamma", "beta","phi", "p")
+parameters <- c("alpha", "phi.trt21", "phi.trt22", "phi.trt23", "phi.trt24", "gamma",  "gamma.p", "beta","phi", "p")
 
 # MCMC settings
 ni <- 15000
@@ -887,21 +893,222 @@ nb <- 7000
 nc <- 3
 
 # Call JAGS from R (BRT 2 min)
-amb.cjs.t.c.trt2 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-c-trt2.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.t.c.trt2)
+amb.cjs.t.t.trt <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-trt.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(amb.cjs.t.t.trt)
 
-plot(c(1:16), amb.cjs.t.c.trt2$mean$phi.trt21, lty=1)
-lines(c(1:16), amb.cjs.t.c.trt2$mean$phi.trt21, col=1)
-lines(c(1:16), amb.cjs.t.c.trt2$mean$phi.trt22, col=2)
+plot(c(1:14), amb.cjs.t.t.trt$mean$phi.trt21, lty=1)
+lines(c(1:14), amb.cjs.t.t.trt$mean$phi.trt21, col=1)
+lines(c(1:14), amb.cjs.t.t.trt$mean$phi.trt22, col=2)
+lines(c(1:14), amb.cjs.t.t.trt$mean$phi.trt23, col=3)
+lines(c(1:14), amb.cjs.t.t.trt$mean$phi.trt24, col=4)
 
-plot(density(amb.cjs.t.c.trt2$sims.list$alpha[,1]), xlim=c(-3,3))#J1
-lines(density(amb.cjs.t.c.trt2$sims.list$alpha[,2]), col=2)#J3
+plot(density(amb.cjs.t.t.trt$sims.list$alpha[,1]), xlim=c(-3,3))#L1J1
+lines(density(amb.cjs.t.t.trt$sims.list$alpha[,2]), col=2)#L1J3
+lines(density(amb.cjs.t.t.trt$sims.list$alpha[,3]), col=3)#L3J1
+lines(density(amb.cjs.t.t.trt$sims.list$alpha[,4]), col=4)#L3J3
 
 #If difference of posteriors overlaps zero, no significant difference
-plot(density(amb.cjs.t.c.trt2$sims.list$alpha[,1]-amb.cjs.t.c.trt2$sims.list$alpha[,2]))
+plot(density(amb.cjs.t.t.trt$sims.list$alpha[,1]-amb.cjs.t.t.trt$sims.list$alpha[,2]))
+plot(density(amb.cjs.t.t.trt$sims.list$alpha[,1]-amb.cjs.t.t.trt$sims.list$alpha[,3]))
+plot(density(amb.cjs.t.t.trt$sims.list$alpha[,1]-amb.cjs.t.t.trt$sims.list$alpha[,4]))
+plot(density(amb.cjs.t.t.trt$sims.list$alpha[,3]-amb.cjs.t.t.trt$sims.list$alpha[,4]))
 
 #####################################################################################################
-# 7. Phi(g*t)P(.): Model with random time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
+# 8. Phi(t)P(g+t): Model with fixed time-dependent survival and recapture (edited from Kery & Schaub 7.4.1)
+# With immediate trap response
+# With fixed group and time effects on recapture and time effects on survival
+####################################################################################################
+
+sink("amb-cjs-t-t-trt2.jags")
+cat("
+    model {
+    
+    # Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(gamma[t]))))^int[t]     # Time-dependent survival
+        p[i,t] <- (1/(1+exp(-(beta[m[i,t]] + alpha[group[i]] + gamma.p[t]))))         # Time and treatment-dependentrecapture
+      } #t
+    } #i
+    
+    for(u in 1:2){
+      beta[u] ~ dunif(0, 1)              # Priors for recapture
+    }
+    
+    alpha[1] <- 0                        # Corner constraint
+    for(u in 2:4){
+      alpha[u] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. survival compared to treatment 1
+    }
+    
+    for(t in 1:(n.occasions-1)){
+      gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      gamma.p[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      
+      p.trt21[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]))             # Back-transformed survival of treatment 1
+      p.trt22[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[2]))    # Back-transformed survival of treatment 2
+      p.trt23[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[3]))    # Back-transformed survival of treatment 3
+      p.trt24[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[4]))    # Back-transformed survival of treatment 4
+    }
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture 
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+        # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    ",fill = TRUE)
+sink()
+
+# Bundle data
+ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], 
+                     n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH), 
+                     g = length(unique(group_ao)), group=group_ao)
+
+# Initial values
+inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(3)), 
+                         gamma = rnorm(14), gamma.p = rnorm(14), z = cjs.init.z(ao_CH,f_ao))}
+
+# Parameters monitored
+parameters <- c("alpha", "p.trt21", "p.trt22", "p.trt23", "p.trt24", "gamma",  "gamma.p", "beta","phi", "p")
+
+# MCMC settings
+ni <- 15000
+nt <- 10
+nb <- 7000
+nc <- 3
+
+# Call JAGS from R (BRT 2 min)
+amb.cjs.t.t.trt2 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-trt2.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(amb.cjs.t.t.trt2)
+
+plot(c(1:14), amb.cjs.t.t.trt2$mean$p.trt21, lty=1)
+lines(c(1:14), amb.cjs.t.t.trt2$mean$p.trt21, col=1)
+lines(c(1:14), amb.cjs.t.t.trt2$mean$p.trt22, col=2)
+lines(c(1:14), amb.cjs.t.t.trt2$mean$p.trt23, col=3)
+lines(c(1:14), amb.cjs.t.t.trt2$mean$p.trt24, col=4)
+
+plot(density(amb.cjs.t.t.trt2$sims.list$alpha[,1]), xlim=c(-3,3))#L1J1
+lines(density(amb.cjs.t.t.trt2$sims.list$alpha[,2]), col=2)#L1J3
+lines(density(amb.cjs.t.t.trt2$sims.list$alpha[,3]), col=3)#L3J1
+lines(density(amb.cjs.t.t.trt2$sims.list$alpha[,4]), col=4)#L3J3
+
+#If difference of posteriors overlaps zero, no significant difference
+plot(density(amb.cjs.t.t.trt2$sims.list$alpha[,1]-amb.cjs.t.t.trt2$sims.list$alpha[,2]))
+plot(density(amb.cjs.t.t.trt2$sims.list$alpha[,1]-amb.cjs.t.t.trt2$sims.list$alpha[,3]))
+plot(density(amb.cjs.t.t.trt2$sims.list$alpha[,1]-amb.cjs.t.t.trt2$sims.list$alpha[,4]))
+plot(density(amb.cjs.t.t.trt2$sims.list$alpha[,3]-amb.cjs.t.t.trt2$sims.list$alpha[,4]))
+
+#####################################################################################################
+# 9. Phi(g+t)P(g+t): Model with fixed time-dependent survival and recapture (edited from Kery & Schaub 7.4.1)
+# With immediate trap response
+# With fixed group and time effects on recapture and  survival
+####################################################################################################
+
+sink("amb-cjs-t-t-trt3.jags")
+cat("
+    model {
+    
+    # Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(alpha[group[i]] + gamma[t]))))^int[t]     # Time-dependent survival
+        p[i,t] <- (1/(1+exp(-(beta[m[i,t]] + alpha.p[group[i]] + gamma.p[t]))))         # Time and treatment-dependentrecapture
+      } #t
+    } #i
+    
+    for(u in 1:2){
+      beta[u] ~ dunif(0, 1)              # Priors for recapture
+    }
+    
+    alpha[1] <- 0                        # Corner constraint
+    alpha.p[1] <- 0  
+    for(u in 2:4){
+      alpha[u] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. survival compared to treatment 1
+      alpha.p[u] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in treatment-spec. recapture compared to treatment 1
+    }
+    
+    
+    for(t in 1:(n.occasions-1)){
+      gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      gamma.p[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      
+      phi.trt31[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]))             # Back-transformed survival of treatment 1
+      phi.trt32[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[2]))    # Back-transformed survival of treatment 2
+      phi.trt33[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[3]))    # Back-transformed survival of treatment 3
+      phi.trt34[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[4]))    # Back-transformed survival of treatment 4
+      
+      p.trt31[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]))             # Back-transformed recapture of treatment 1
+      p.trt32[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha.p[2]))    # Back-transformed recapture of treatment 2
+      p.trt33[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha.p[3]))    # Back-transformed recapture of treatment 3
+      p.trt34[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha.p[4]))    # Back-transformed recapture of treatment 4
+    }
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture 
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+        # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    ",fill = TRUE)
+sink()
+
+# Bundle data
+ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], 
+                     n.occasions = dim(ao_CH)[2], z = known.state.cjs(ao_CH), 
+                     g = length(unique(group_ao)), group=group_ao)
+
+# Initial values
+inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(3)), alpha.p = c(NA, rnorm(3)),
+                         gamma = rnorm(14), gamma.p = rnorm(14), z = cjs.init.z(ao_CH,f_ao))}
+
+# Parameters monitored
+parameters <- c("alpha", "alpha.p", "phi.trt31", "phi.trt32", "phi.trt33", "phi.trt34", 
+                "p.trt31", "p.trt32", "p.trt33", "p.trt34", "gamma",  "gamma.p", "beta","phi", "p")
+
+# MCMC settings
+ni <- 15000
+nt <- 10
+nb <- 7000
+nc <- 3
+
+# Call JAGS from R (BRT 2 min)
+amb.cjs.t.t.trt3 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-trt3.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(amb.cjs.t.t.trt3)
+
+plot(c(1:14), amb.cjs.t.t.trt3$mean$p.trt31, lty=1)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt31, col=1)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt32, col=2)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt33, col=3)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt34, col=4)
+
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]), xlim=c(-3,3))#L1J1
+lines(density(amb.cjs.t.t.trt3$sims.list$alpha[,2]), col=2)#L1J3
+lines(density(amb.cjs.t.t.trt3$sims.list$alpha[,3]), col=3)#L3J1
+lines(density(amb.cjs.t.t.trt3$sims.list$alpha[,4]), col=4)#L3J3
+
+#If difference of posteriors overlaps zero, no significant difference
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]-amb.cjs.t.t.trt3$sims.list$alpha[,2]))
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]-amb.cjs.t.t.trt3$sims.list$alpha[,3]))
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]-amb.cjs.t.t.trt3$sims.list$alpha[,4]))
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,3]-amb.cjs.t.t.trt3$sims.list$alpha[,4]))
+#####################################################################################################
+# 10. Phi(g*t)P(.): Model with random time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
 # With immediate trap response
 # With treatment group * time interaction term
 ####################################################################################################
@@ -1000,28 +1207,28 @@ phi.mean <- phi.list %>% summarise_all(mean, na.rm=TRUE)
 phi.med <- phi.list %>% summarise_all(median, na.rm=TRUE) 
 phi.lower <- as.numeric(phi.l %>% summarise_all(mean, na.rm=TRUE))
 phi.higher <- as.numeric(phi.h %>% summarise_all(mean, na.rm=TRUE))
-mean(phi.listv, na.rm = TRUE) #mean survival = 0.85
-median(phi.listv, na.rm = TRUE) #median survival= 0.92
-sd(phi.listv, na.rm = TRUE)#0.18
-phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.46
-phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.97
+mean(phi.listv, na.rm = TRUE) #mean survival = 0.90
+median(phi.listv, na.rm = TRUE) #median survival= 0.93
+sd(phi.listv, na.rm = TRUE)#0.12
+phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.69
+phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.99
 
-g1.phi<-as.matrix(subset(phi.list[1:48,]))
-g2.phi<-as.matrix(subset(phi.list[49:96,]))
-g3.phi<-as.matrix(subset(phi.list[97:144,]))
-g4.phi<-as.matrix(subset(phi.list[145:192,]))
-g1.phi.dat<-as.data.frame(subset(phi.list[1:48,]))
-g2.phi.dat<-as.data.frame(subset(phi.list[49:96,]))
-g3.phi.dat<-as.data.frame(subset(phi.list[97:144,]))
-g4.phi.dat<-as.data.frame(subset(phi.list[145:192,]))
-g1.phil<-as.data.frame(subset(phi.l[1:48,])) #Spp.-specific lower CI
-g2.phil<-as.data.frame(subset(phi.l[49:96,]))
-g3.phil<-as.data.frame(subset(phi.l[97:144,]))
-g4.phil<-as.data.frame(subset(phi.l[145:192,]))
-g1.phih<-as.data.frame(subset(phi.h[1:48,])) #spp.-specific upper CI
-g2.phih<-as.data.frame(subset(phi.h[49:96,]))
-g3.phih<-as.data.frame(subset(phi.h[97:144,]))
-g4.phih<-as.data.frame(subset(phi.h[145:192,]))
+g1.phi<-as.matrix(subset(phi.list[1:36,]))
+g2.phi<-as.matrix(subset(phi.list[37:72,]))
+g3.phi<-as.matrix(subset(phi.list[73:108,]))
+g4.phi<-as.matrix(subset(phi.list[109:144,]))
+g1.phi.dat<-as.data.frame(subset(phi.list[1:36,]))
+g2.phi.dat<-as.data.frame(subset(phi.list[37:72,]))
+g3.phi.dat<-as.data.frame(subset(phi.list[73:108,]))
+g4.phi.dat<-as.data.frame(subset(phi.list[109:144,]))
+g1.phil<-as.data.frame(subset(phi.l[1:36,])) #Spp.-specific lower CI
+g2.phil<-as.data.frame(subset(phi.l[37:72,]))
+g3.phil<-as.data.frame(subset(phi.l[73:108,]))
+g4.phil<-as.data.frame(subset(phi.l[109:144,]))
+g1.phih<-as.data.frame(subset(phi.h[1:36,])) #spp.-specific upper CI
+g2.phih<-as.data.frame(subset(phi.h[37:72,]))
+g3.phih<-as.data.frame(subset(phi.h[73:108,]))
+g4.phih<-as.data.frame(subset(phi.h[109:144,]))
 phi.g1 <- g1.phi.dat %>% summarise_all(mean)
 phi.g2 <- g2.phi.dat %>% summarise_all(mean)
 phi.g3 <- g3.phi.dat %>% summarise_all(mean)
@@ -1046,25 +1253,25 @@ med.g1.phi<-median(g1.phi)#Overall spp. medians
 med.g2.phi<-median(g2.phi)
 med.g3.phi<-median(g3.phi)
 med.g4.phi<-median(g4.phi)
-means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8526413 0.8472176 0.8523415 0.8555185
-meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9130953 0.9130953 0.9190088 0.9198113
+means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8811616 0.9136032 0.8980440 0.8929457
+meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9233746 0.9511189 0.9379565 0.9310718
 sd.g1.phi<-sd(g1.phi)
 sd.g2.phi<-sd(g2.phi)
 sd.g3.phi<-sd(g3.phi)
 sd.g4.phi<-sd(g4.phi)
-sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.1701492 0.1814983 0.1856068 0.1815513
+sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.1231950 0.1105236 0.1169268 0.1172422
 
 #Figure of treatment-specific temporal survival
 par(mai=c(2,2,1,1), mgp=c(5,2,0))
-plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
+plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
      ylim=c(0,1), ylab="Survival probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
-segments((1:16), g1.low, (1:16), g1.high, col="salmon1", lwd=2)
-points(x=(1:16)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
-segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3", lwd=2)
-points(x=(1:16)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
-segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue", lwd=2)
-points(x=(1:16)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
-segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4", lwd=2)
+segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=2)
+points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
+segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=2)
+points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
+segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=2)
+points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
+segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
 legend(x = 10, y=.5, bty = 'n',
        #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
        legend=c("L3J3", "L3J1", "L1J3", "L1J1"),
