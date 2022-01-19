@@ -1040,10 +1040,10 @@ cat("
       gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
       gamma.p[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
       
-      phi.trt31[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]))             # Back-transformed survival of treatment 1
-      phi.trt32[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[2]))    # Back-transformed survival of treatment 2
-      phi.trt33[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[3]))    # Back-transformed survival of treatment 3
-      phi.trt34[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha[4]))    # Back-transformed survival of treatment 4
+      phi.trt31[t] <- 1/(1 + exp(-gamma[t]-beta[1]))             # Back-transformed survival of treatment 1
+      phi.trt32[t] <- 1/(1 + exp(-gamma[t]-beta[1]-alpha[2]))    # Back-transformed survival of treatment 2
+      phi.trt33[t] <- 1/(1 + exp(-gamma[t]-beta[1]-alpha[3]))    # Back-transformed survival of treatment 3
+      phi.trt34[t] <- 1/(1 + exp(-gamma[t]-beta[1]-alpha[4]))    # Back-transformed survival of treatment 4
       
       p.trt31[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]))             # Back-transformed recapture of treatment 1
       p.trt32[t] <- 1/(1 + exp(-gamma.p[t]-beta[1]-alpha.p[2]))    # Back-transformed recapture of treatment 2
@@ -1079,7 +1079,7 @@ inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(3)), alpha.p
 
 # Parameters monitored
 parameters <- c("alpha", "alpha.p", "phi.trt31", "phi.trt32", "phi.trt33", "phi.trt34", 
-                "p.trt31", "p.trt32", "p.trt33", "p.trt34", "gamma",  "gamma.p", "beta","phi", "p")
+                "p.trt31", "p.trt32", "p.trt33", "p.trt34", "gamma", "gamma.p", "beta","phi", "p")
 
 # MCMC settings
 ni <- 50000
@@ -1091,12 +1091,33 @@ nc <- 3
 amb.cjs.t.t.trt3 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-trt3.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
 print(amb.cjs.t.t.trt3)
 
+#Recapture
 plot(c(1:14), amb.cjs.t.t.trt3$mean$p.trt31, lty=1)
 lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt31, col=1)
 lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt32, col=2)
 lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt33, col=3)
 lines(c(1:14), amb.cjs.t.t.trt3$mean$p.trt34, col=4)
 
+#Survival
+plot(c(1:14), amb.cjs.t.t.trt3$mean$phi.trt31, lty=1)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$phi.trt31, col=1)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$phi.trt32, col=2)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$phi.trt33, col=3)
+lines(c(1:14), amb.cjs.t.t.trt3$mean$phi.trt34, col=4)
+
+#Group effect on recapture
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,1]), xlim=c(-3,3))#L1J1
+lines(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,2]), col=2)#L1J3
+lines(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,3]), col=3)#L3J1
+lines(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,4]), col=4)#L3J3
+
+#If difference of posteriors overlaps zero, no significant difference
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,1]-amb.cjs.t.t.trt3$sims.list$alpha.p[,2]))
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,1]-amb.cjs.t.t.trt3$sims.list$alpha.p[,3]))
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,1]-amb.cjs.t.t.trt3$sims.list$alpha.p[,4]))
+plot(density(amb.cjs.t.t.trt3$sims.list$alpha.p[,3]-amb.cjs.t.t.trt3$sims.list$alpha.p[,4]))
+
+#Group effect on survival
 plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]), xlim=c(-3,3))#L1J1
 lines(density(amb.cjs.t.t.trt3$sims.list$alpha[,2]), col=2)#L1J3
 lines(density(amb.cjs.t.t.trt3$sims.list$alpha[,3]), col=3)#L3J1
@@ -1107,6 +1128,7 @@ plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]-amb.cjs.t.t.trt3$sims.list$alp
 plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]-amb.cjs.t.t.trt3$sims.list$alpha[,3]))
 plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,1]-amb.cjs.t.t.trt3$sims.list$alpha[,4]))
 plot(density(amb.cjs.t.t.trt3$sims.list$alpha[,3]-amb.cjs.t.t.trt3$sims.list$alpha[,4]))
+
 #####################################################################################################
 # 10. Phi(g*t)P(.): Model with random time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
 # With immediate trap response
