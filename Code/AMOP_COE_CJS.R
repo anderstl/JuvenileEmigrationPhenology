@@ -887,9 +887,9 @@ inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(3)),
 parameters <- c("alpha", "phi.trt21", "phi.trt22", "phi.trt23", "phi.trt24", "gamma",  "gamma.p", "beta","phi", "p")
 
 # MCMC settings
-ni <- 15000
-nt <- 10
-nb <- 7000
+ni <- 50000
+nt <- 5
+nb <- 30000
 nc <- 3
 
 # Call JAGS from R (BRT 2 min)
@@ -980,9 +980,9 @@ inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(3)),
 parameters <- c("alpha", "p.trt21", "p.trt22", "p.trt23", "p.trt24", "gamma",  "gamma.p", "beta","phi", "p")
 
 # MCMC settings
-ni <- 15000
-nt <- 10
-nb <- 7000
+ni <- 50000
+nt <- 5
+nb <- 30000
 nc <- 3
 
 # Call JAGS from R (BRT 2 min)
@@ -1082,9 +1082,9 @@ parameters <- c("alpha", "alpha.p", "phi.trt31", "phi.trt32", "phi.trt33", "phi.
                 "p.trt31", "p.trt32", "p.trt33", "p.trt34", "gamma",  "gamma.p", "beta","phi", "p")
 
 # MCMC settings
-ni <- 15000
-nt <- 10
-nb <- 7000
+ni <- 50000
+nt <- 5
+nb <- 30000
 nc <- 3
 
 # Call JAGS from R (BRT 2 min)
