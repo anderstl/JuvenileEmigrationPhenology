@@ -894,7 +894,7 @@ nc <- 3
 
 # Call JAGS from R (BRT 2 min)
 amb.cjs.t.t.trt <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-trt.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.t.t.trt)
+print(amb.cjs.t.t.trt) #DIC = 1576.59
 
 plot(c(1:14), amb.cjs.t.t.trt$mean$phi.trt21, lty=1)
 lines(c(1:14), amb.cjs.t.t.trt$mean$phi.trt21, col=1)
@@ -987,7 +987,7 @@ nc <- 3
 
 # Call JAGS from R (BRT 2 min)
 amb.cjs.t.t.trt2 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-trt2.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.t.t.trt2)
+print(amb.cjs.t.t.trt2)#DIC = 1548.32
 
 plot(c(1:14), amb.cjs.t.t.trt2$mean$p.trt21, lty=1)
 lines(c(1:14), amb.cjs.t.t.trt2$mean$p.trt21, col=1)
@@ -1089,7 +1089,7 @@ nc <- 3
 
 # Call JAGS from R (BRT 2 min)
 amb.cjs.t.t.trt3 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-trt3.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.t.t.trt3)
+print(amb.cjs.t.t.trt3)#DIC = 1547.44
 
 #Recapture
 plot(c(1:14), amb.cjs.t.t.trt3$mean$p.trt31, lty=1)
@@ -1193,7 +1193,7 @@ inits <- function(){list(beta = runif(2, 0, 1), mean.phi = runif(4, 0, 1),
 parameters <- c("mu.phi", "mean.phi", "sigma2", "beta","phi", "p")
 
 # MCMC settings
-ni <- 15000
+ni <- 20000
 nt <- 10
 nb <- 7000
 nc <- 3
@@ -1296,17 +1296,17 @@ points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5
 segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
 legend(x = 10, y=.5, bty = 'n',
        #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
-       legend=c("L3J3", "L3J1", "L1J3", "L1J1"),
+       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
        lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
 #dev.off()
 
 #####################################################################################################
-# 7.1. Phi(g*t)P(.): Model with random time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
+# 11. Phi(t*g)P(t): Model with random time-dependent survival and recapture (edited from Kery & Schaub 7.4.1)
 # With immediate trap response
-# With juvenile-only treatment group * time interaction term
+# With treatment group * time interaction term on survival
 ####################################################################################################
 
-sink("amb-cjs-t-c-int2.jags")
+sink("amb-cjs-t-t-int.jags")
 cat("
     model {
     
@@ -1314,13 +1314,23 @@ cat("
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
         phi[i,t] <- (1/(1+exp(-(eta.phi[group[i],t]))))^int[t]              # Time-dependent survival
-        p[i,t] <- beta[m[i,t]]                  # Constant recapture
+        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + epsilon.p[t])))      # Time-dependen recapture
       } #t
     } #i
     
     for(u in 1:2){
-      beta[u] ~ dunif(0, 1)         # Priors for recapture
+      beta.m[u] ~ dunif(0, 1)         # Priors for recapture
     }
+    
+    mean.p~dnorm(0,0.001)
+    mu.p<-1/(1+exp(-mean.p))              # Logit transformed Recapture grand mean/intercept
+    
+    for (t in 1:(n.occasions-1)){
+      epsilon.p[t] ~ dnorm(0, tau.p)        # Prior for recapture residuals
+    }
+    sigma.p ~ dunif(0,5)                    # Prior on standard deviation
+    tau.p <- pow(sigma.p, -2)
+    sigma2.p <- pow(sigma.p, 2)             # Residual temporal variance
     
     for (u in 1:g){
       for (t in 1:(n.occasions-1)){
@@ -1354,85 +1364,305 @@ sink()
 # Bundle data
 ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], 
                      n.occasions = dim(ao_CH)[2],  z = known.state.cjs(ao_CH), 
-                     g = length(unique(group2_ao)), group=group2_ao)
+                     g = length(unique(group_ao)), group=group_ao)
 
 # Initial values
-inits <- function(){list(beta = runif(2, 0, 1), mean.phi = runif(2, 0, 1),
-                         z = cjs.init.z(ao_CH,f_ao))}
+inits <- function(){list(beta.m = runif(2, 0, 1), mean.phi = runif(4, 0, 1),
+                         z = cjs.init.z(ao_CH,f_ao), mean.p = runif(1, 0, 1))}
 
 # Parameters monitored
-parameters <- c("mu.phi", "mean.phi", "sigma2", "beta","phi", "p")
+parameters <- c("mu.phi", "mean.phi", "mean.p", "sigma2", "beta.m","phi", "p")
 
 # MCMC settings
-ni <- 15000
-nt <- 10
-nb <- 7000
+ni <- 50000
+nt <- 5
+nb <- 20000
 nc <- 3
 
 # Call JAGS from R (BRT 2 min)
-amb.cjs.t.c.int2 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-c-int2.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-print(amb.cjs.t.c.int2)
+amb.cjs.t.t.int <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-int.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(amb.cjs.t.t.int)
 
-plot(amb.cjs.t.c.int2)
+plot(amb.cjs.t.t.int)
 
-plot(density(amb.cjs.t.c.int2$sims.list$mean.phi[,1]))#J1
-lines(density(amb.cjs.t.c.int2$sims.list$mean.phi[,2]), col=2)#J3
+plot(density(amb.cjs.t.t.int$sims.list$mean.phi[,1]))#L3J3
+lines(density(amb.cjs.t.t.int$sims.list$mean.phi[,2]), col=2)#L3J1
+lines(density(amb.cjs.t.t.int$sims.list$mean.phi[,3]), col=3)#L1J3
+lines(density(amb.cjs.t.t.int$sims.list$mean.phi[,4]), col=4)#L1J1
 
 #If difference of posteriors overlaps zero, no significant difference
-plot(density(amb.cjs.t.c.int2$sims.list$mean.phi[,1]-amb.cjs.t.c.int2$sims.list$mean.phi[,2]))
-
+plot(density(amb.cjs.t.t.int$sims.list$mean.phi[,1]-amb.cjs.t.t.int$sims.list$mean.phi[,2]))
+plot(density(amb.cjs.t.t.int$sims.list$mean.phi[,1]-amb.cjs.t.t.int$sims.list$mean.phi[,3]))
+plot(density(amb.cjs.t.t.int$sims.list$mean.phi[,1]-amb.cjs.t.t.int$sims.list$mean.phi[,4]))
+plot(density(amb.cjs.t.t.int$sims.list$mean.phi[,2]-amb.cjs.t.t.int$sims.list$mean.phi[,3]))
+plot(density(amb.cjs.t.t.int$sims.list$mean.phi[,2]-amb.cjs.t.t.int$sims.list$mean.phi[,4]))
+plot(density(amb.cjs.t.t.int$sims.list$mean.phi[,3]-amb.cjs.t.t.int$sims.list$mean.phi[,4]))
+#All overlap zero
 
 #Calculate phi distributions
-phi.list<-as.data.frame(amb.cjs.t.c.int2$mean$phi)
-phi.l<-as.data.frame(amb.cjs.t.c.int2$q2.5$phi)
-phi.h<-as.data.frame(amb.cjs.t.c.int2$q97.5$phi)
-phi.listv<-as.matrix(amb.cjs.t.c.int2$mean$phi)
-phi.lv<-as.matrix(amb.cjs.t.c.int2$q2.5$phi)
-phi.hv<-as.matrix(amb.cjs.t.c.int2$q97.5$phi)
+phi.list<-as.data.frame(amb.cjs.t.t.int$mean$phi)
+phi.l<-as.data.frame(amb.cjs.t.t.int$q2.5$phi)
+phi.h<-as.data.frame(amb.cjs.t.t.int$q97.5$phi)
+phi.listv<-as.matrix(amb.cjs.t.t.int$mean$phi)
+phi.lv<-as.matrix(amb.cjs.t.t.int$q2.5$phi)
+phi.hv<-as.matrix(amb.cjs.t.t.int$q97.5$phi)
 phi.mean <- phi.list %>% summarise_all(mean, na.rm=TRUE) 
 phi.med <- phi.list %>% summarise_all(median, na.rm=TRUE) 
 phi.lower <- as.numeric(phi.l %>% summarise_all(mean, na.rm=TRUE))
 phi.higher <- as.numeric(phi.h %>% summarise_all(mean, na.rm=TRUE))
-mean(phi.listv, na.rm = TRUE) #mean survival = 0.86
-median(phi.listv, na.rm = TRUE) #median survival= 0.94
-sd(phi.listv, na.rm = TRUE)#0.18
-phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.57
-phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.97
+mean(phi.listv, na.rm = TRUE) #mean survival = 0.90
+median(phi.listv, na.rm = TRUE) #median survival= 0.93
+sd(phi.listv, na.rm = TRUE)#0.12
+phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.70
+phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.99
 
-g1.phi<-as.matrix(subset(phi.list[1:96,]))
-g2.phi<-as.matrix(subset(phi.list[97:192,]))
-g1.phi.dat<-as.data.frame(subset(phi.list[1:96,]))
-g2.phi.dat<-as.data.frame(subset(phi.list[97:192,]))
-g1.phil<-as.data.frame(subset(phi.l[1:96,])) #Treatment-specific lower CI
-g2.phil<-as.data.frame(subset(phi.l[97:192,]))
-g1.phih<-as.data.frame(subset(phi.h[1:96,])) #Treatment-specific upper CI
-g2.phih<-as.data.frame(subset(phi.h[97:192,]))
+g1.phi<-as.matrix(subset(phi.list[1:36,]))
+g2.phi<-as.matrix(subset(phi.list[37:72,]))
+g3.phi<-as.matrix(subset(phi.list[73:108,]))
+g4.phi<-as.matrix(subset(phi.list[109:144,]))
+g1.phi.dat<-as.data.frame(subset(phi.list[1:36,]))
+g2.phi.dat<-as.data.frame(subset(phi.list[37:72,]))
+g3.phi.dat<-as.data.frame(subset(phi.list[73:108,]))
+g4.phi.dat<-as.data.frame(subset(phi.list[109:144,]))
+g1.phil<-as.data.frame(subset(phi.l[1:36,])) #Spp.-specific lower CI
+g2.phil<-as.data.frame(subset(phi.l[37:72,]))
+g3.phil<-as.data.frame(subset(phi.l[73:108,]))
+g4.phil<-as.data.frame(subset(phi.l[109:144,]))
+g1.phih<-as.data.frame(subset(phi.h[1:36,])) #spp.-specific upper CI
+g2.phih<-as.data.frame(subset(phi.h[37:72,]))
+g3.phih<-as.data.frame(subset(phi.h[73:108,]))
+g4.phih<-as.data.frame(subset(phi.h[109:144,]))
 phi.g1 <- g1.phi.dat %>% summarise_all(mean)
 phi.g2 <- g2.phi.dat %>% summarise_all(mean)
+phi.g3 <- g3.phi.dat %>% summarise_all(mean)
+phi.g4 <- g4.phi.dat %>% summarise_all(mean)
 phi.g1.med <- g1.phi.dat %>% summarise_all(median)
 phi.g2.med <- g2.phi.dat %>% summarise_all(median)
+phi.g3.med <- g3.phi.dat %>% summarise_all(median)
+phi.g4.med <- g4.phi.dat %>% summarise_all(median)
 g1.low<-as.numeric(g1.phil %>% summarise_all(mean, na.rm=TRUE))
 g1.high<-as.numeric(g1.phih %>% summarise_all(mean, na.rm=TRUE))
 g2.low<-as.numeric(g2.phil %>% summarise_all(mean, na.rm=TRUE))
 g2.high<-as.numeric(g2.phih %>% summarise_all(mean, na.rm=TRUE))
+g3.low<-as.numeric(g3.phil %>% summarise_all(mean, na.rm=TRUE))
+g3.high<-as.numeric(g3.phih %>% summarise_all(mean, na.rm=TRUE))
+g4.low<-as.numeric(g4.phil %>% summarise_all(mean, na.rm=TRUE))
+g4.high<-as.numeric(g4.phih %>% summarise_all(mean, na.rm=TRUE))
 x.g1.phi<-mean(g1.phi)#Overall spp. means
 x.g2.phi<-mean(g2.phi)
+x.g3.phi<-mean(g3.phi)
+x.g4.phi<-mean(g4.phi)
 med.g1.phi<-median(g1.phi)#Overall spp. medians
 med.g2.phi<-median(g2.phi)
-means.phi<-c(x.g1.phi, x.g2.phi)#0.8526413 0.8472176 0.8523415 0.8555185
-meds.phi<-c(med.g1.phi, med.g2.phi) #0.9130953 0.9130953 0.9190088 0.9198113
+med.g3.phi<-median(g3.phi)
+med.g4.phi<-median(g4.phi)
+means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8821195 0.9147134 0.8990304 0.8938436
+meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9240564 0.9472223 0.9391936 0.9279482
 sd.g1.phi<-sd(g1.phi)
 sd.g2.phi<-sd(g2.phi)
-sd.phi<-c(sd.g1.phi, sd.g2.phi)#0.1701492 0.1814983 0.1856068 0.1815513
+sd.g3.phi<-sd(g3.phi)
+sd.g4.phi<-sd(g4.phi)
+sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.1231950 0.1105236 0.1169268 0.1172422
 
 #Figure of treatment-specific temporal survival
 par(mai=c(2,2,1,1), mgp=c(5,2,0))
-plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
+plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
      ylim=c(0,1), ylab="Survival probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
-segments((1:16), g1.low, (1:16), g1.high, col="salmon1", lwd=2)
-points(x=(1:16)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
-segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3", lwd=2)
+segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=2)
+points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
+segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=2)
+points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
+segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=2)
+points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
+segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
 legend(x = 10, y=.5, bty = 'n',
-       legend=c("J1", "J3"),
-       lwd=c(3,2), pch=c(1,6), lty=c(3,2), cex=2.5,  col=c("salmon1", "deepskyblue3"))
+       #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
+       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
+       lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
 #dev.off()
+
+#####################################################################################################
+# 12. Phi(t*g)P(t*g): Model with random time-dependent survival and recapture (edited from Kery & Schaub 7.4.1)
+# With immediate trap response
+# With treatment group * time interaction term on survival
+####################################################################################################
+
+sink("amb-cjs-t-t-int1.jags")
+cat("
+    model {
+    
+    # Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(mean.phi + alpha.phi[group[i],t] + epsilon.phi[t]))))^int[t]              # Time-dependent survival
+        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + alpha.p[group[i],t] + epsilon.p[t])))      # Time-dependent recapture
+      } #t
+    } #i
+    
+    for(u in 1:2){
+      beta.m[u] ~ dunif(0, 1)         # Priors for recapture
+    }
+    
+    for (u in 1:g){
+      for (t in 1:(n.occasions-1)){
+        alpha.phi[u,t] ~ dunif(0, 1)          # Prior for time and group-spec. survival
+        alpha.p[u,t] ~ dunif(0, 1)          # Prior for time and group-spec. recapture
+      } #t
+    } #g
+    
+    mean.p~dnorm(0,0.001)
+    mu.p<-1/(1+exp(-mean.p))              # Logit transformed Recapture grand mean/intercept
+    mean.phi~dnorm(0,0.001)
+    mu.phi<-1/(1+exp(-mean.phi))              # Logit transformed Recapture grand mean/intercept
+    
+    for (t in 1:(n.occasions-1)){
+      epsilon.p[t] ~ dnorm(0, tau.p)        # Prior for recapture residuals
+      epsilon.phi[t] ~ dnorm(0, tau.phi)        # Prior for recapture residuals
+    }
+    sigma.p ~ dunif(0,5)                    # Prior on standard deviation
+    tau.p <- pow(sigma.p, -2)
+    sigma2.p <- pow(sigma.p, 2)             # Residual temporal variance
+    sigma.phi ~ dunif(0,5)                    # Prior on standard deviation
+    tau.phi <- pow(sigma.phi, -2)
+    sigma2.phi <- pow(sigma.phi, 2)             # Residual temporal variance
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture 
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+        # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    ",fill = TRUE)
+sink()
+
+# Bundle data
+ao_jags.data <- list(y = ao_CH, m=m_ao, int=interval_ao$int, f = f_ao, nind = dim(ao_CH)[1], 
+                     n.occasions = dim(ao_CH)[2],  z = known.state.cjs(ao_CH), 
+                     g = length(unique(group_ao)), group=group_ao)
+
+# Initial values
+inits <- function(){list(beta.m = runif(2, 0, 1), mean.phi = runif(1, 0, 1),
+                         z = cjs.init.z(ao_CH,f_ao), mean.p = runif(1, 0, 1),
+                         alpha.phi = array(runif(64, 0, 1),dim=c(4,14)), 
+                         alpha.p = array(runif(64, 0, 1),dim=c(4,14)))}
+
+# Parameters monitored
+parameters <- c("mu.phi", "mean.phi", "mu.p", "mean.p", "alpha.phi", "alpha.p", 
+                "sigma.p", "sigma.phi", "beta.m","phi", "p")
+
+# MCMC settings
+ni <- 50000
+nt <- 5
+nb <- 20000
+nc <- 3
+
+# Call JAGS from R (BRT 2 min)
+amb.cjs.t.t.int1 <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-t-int1.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(amb.cjs.t.t.int1)
+
+plot(amb.cjs.t.t.int1)
+
+plot(density(amb.cjs.t.t.int1$sims.list$mean.phi[,1]))#L3J3
+lines(density(amb.cjs.t.t.int1$sims.list$mean.phi[,2]), col=2)#L3J1
+lines(density(amb.cjs.t.t.int1$sims.list$mean.phi[,3]), col=3)#L1J3
+lines(density(amb.cjs.t.t.int1$sims.list$mean.phi[,4]), col=4)#L1J1
+
+#If difference of posteriors overlaps zero, no significant difference
+plot(density(amb.cjs.t.t.int1$sims.list$mean.phi[,1]-amb.cjs.t.t.int1$sims.list$mean.phi[,2]))
+plot(density(amb.cjs.t.t.int1$sims.list$mean.phi[,1]-amb.cjs.t.t.int1$sims.list$mean.phi[,3]))
+plot(density(amb.cjs.t.t.int1$sims.list$mean.phi[,1]-amb.cjs.t.t.int1$sims.list$mean.phi[,4]))
+plot(density(amb.cjs.t.t.int1$sims.list$mean.phi[,2]-amb.cjs.t.t.int1$sims.list$mean.phi[,3]))
+plot(density(amb.cjs.t.t.int1$sims.list$mean.phi[,2]-amb.cjs.t.t.int1$sims.list$mean.phi[,4]))
+plot(density(amb.cjs.t.t.int1$sims.list$mean.phi[,3]-amb.cjs.t.t.int1$sims.list$mean.phi[,4]))
+#All overlap zero
+
+#Calculate phi distributions
+phi.list<-as.data.frame(amb.cjs.t.t.int1$mean$phi)
+phi.l<-as.data.frame(amb.cjs.t.t.int1$q2.5$phi)
+phi.h<-as.data.frame(amb.cjs.t.t.int1$q97.5$phi)
+phi.listv<-as.matrix(amb.cjs.t.t.int1$mean$phi)
+phi.lv<-as.matrix(amb.cjs.t.t.int1$q2.5$phi)
+phi.hv<-as.matrix(amb.cjs.t.t.int1$q97.5$phi)
+phi.mean <- phi.list %>% summarise_all(mean, na.rm=TRUE) 
+phi.med <- phi.list %>% summarise_all(median, na.rm=TRUE) 
+phi.lower <- as.numeric(phi.l %>% summarise_all(mean, na.rm=TRUE))
+phi.higher <- as.numeric(phi.h %>% summarise_all(mean, na.rm=TRUE))
+mean(phi.listv, na.rm = TRUE) #mean survival = 0.90
+median(phi.listv, na.rm = TRUE) #median survival= 0.93
+sd(phi.listv, na.rm = TRUE)#0.12
+phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.70
+phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.99
+
+g1.phi<-as.matrix(subset(phi.list[1:36,]))
+g2.phi<-as.matrix(subset(phi.list[37:72,]))
+g3.phi<-as.matrix(subset(phi.list[73:108,]))
+g4.phi<-as.matrix(subset(phi.list[109:144,]))
+g1.phi.dat<-as.data.frame(subset(phi.list[1:36,]))
+g2.phi.dat<-as.data.frame(subset(phi.list[37:72,]))
+g3.phi.dat<-as.data.frame(subset(phi.list[73:108,]))
+g4.phi.dat<-as.data.frame(subset(phi.list[109:144,]))
+g1.phil<-as.data.frame(subset(phi.l[1:36,])) #Spp.-specific lower CI
+g2.phil<-as.data.frame(subset(phi.l[37:72,]))
+g3.phil<-as.data.frame(subset(phi.l[73:108,]))
+g4.phil<-as.data.frame(subset(phi.l[109:144,]))
+g1.phih<-as.data.frame(subset(phi.h[1:36,])) #spp.-specific upper CI
+g2.phih<-as.data.frame(subset(phi.h[37:72,]))
+g3.phih<-as.data.frame(subset(phi.h[73:108,]))
+g4.phih<-as.data.frame(subset(phi.h[109:144,]))
+phi.g1 <- g1.phi.dat %>% summarise_all(mean)
+phi.g2 <- g2.phi.dat %>% summarise_all(mean)
+phi.g3 <- g3.phi.dat %>% summarise_all(mean)
+phi.g4 <- g4.phi.dat %>% summarise_all(mean)
+phi.g1.med <- g1.phi.dat %>% summarise_all(median)
+phi.g2.med <- g2.phi.dat %>% summarise_all(median)
+phi.g3.med <- g3.phi.dat %>% summarise_all(median)
+phi.g4.med <- g4.phi.dat %>% summarise_all(median)
+g1.low<-as.numeric(g1.phil %>% summarise_all(mean, na.rm=TRUE))
+g1.high<-as.numeric(g1.phih %>% summarise_all(mean, na.rm=TRUE))
+g2.low<-as.numeric(g2.phil %>% summarise_all(mean, na.rm=TRUE))
+g2.high<-as.numeric(g2.phih %>% summarise_all(mean, na.rm=TRUE))
+g3.low<-as.numeric(g3.phil %>% summarise_all(mean, na.rm=TRUE))
+g3.high<-as.numeric(g3.phih %>% summarise_all(mean, na.rm=TRUE))
+g4.low<-as.numeric(g4.phil %>% summarise_all(mean, na.rm=TRUE))
+g4.high<-as.numeric(g4.phih %>% summarise_all(mean, na.rm=TRUE))
+x.g1.phi<-mean(g1.phi)#Overall spp. means
+x.g2.phi<-mean(g2.phi)
+x.g3.phi<-mean(g3.phi)
+x.g4.phi<-mean(g4.phi)
+med.g1.phi<-median(g1.phi)#Overall spp. medians
+med.g2.phi<-median(g2.phi)
+med.g3.phi<-median(g3.phi)
+med.g4.phi<-median(g4.phi)
+means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8821195 0.9147134 0.8990304 0.8938436
+meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9240564 0.9472223 0.9391936 0.9279482
+sd.g1.phi<-sd(g1.phi)
+sd.g2.phi<-sd(g2.phi)
+sd.g3.phi<-sd(g3.phi)
+sd.g4.phi<-sd(g4.phi)
+sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.1231950 0.1105236 0.1169268 0.1172422
+
+#Figure of treatment-specific temporal survival
+par(mai=c(2,2,1,1), mgp=c(5,2,0))
+plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
+     ylim=c(0,1), ylab="Survival probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
+segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=2)
+points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
+segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=2)
+points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
+segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=2)
+points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
+segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
+legend(x = 10, y=.5, bty = 'n',
+       #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
+       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
+       lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
+#dev.off()
+

@@ -1,0 +1,52 @@
+
+    model {
+    
+    # Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(eta.phi[group[i],t]))))^int[t]              # Time-dependent survival
+        p[i,t] <- 1/(1+exp(-(mean.p + beta.m[m[i,t]] + epsilon.p[t])))      # Time-dependen recapture
+      } #t
+    } #i
+    
+    for(u in 1:2){
+      beta.m[u] ~ dunif(0, 1)         # Priors for recapture
+    }
+    
+    mean.p~dnorm(0,0.001)
+    mu.p<-1/(1+exp(-mean.p))              # Logit transformed Recapture grand mean/intercept
+    
+    for (t in 1:(n.occasions-1)){
+      epsilon.p[t] ~ dnorm(0, tau.p)        # Prior for recapture residuals
+    }
+    sigma.p ~ dunif(0,5)                    # Prior on standard deviation
+    tau.p <- pow(sigma.p, -2)
+    sigma2.p <- pow(sigma.p, 2)             # Residual temporal variance
+    
+    for (u in 1:g){
+      for (t in 1:(n.occasions-1)){
+        eta.phi[u,t] <- mu.phi[u] + epsilon[u,t]
+        epsilon[u,t] ~ dnorm(0, tau[u])
+      }#t
+      mean.phi[u] ~ dunif(0, 1)                     #Priors on mean treatment-spec. survival
+      mu.phi[u] <- log(mean.phi[u]/(1-mean.phi[u]))
+      sigma[u] ~ dunif(0, 10)                       #Prior for treatment-spec. SD
+      tau[u] <- pow(sigma[u], -2)
+      sigma2[u] <-pow(sigma[u], 2)                  #Treatment-spec. temporal variance
+    }#g
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture 
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+        # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    

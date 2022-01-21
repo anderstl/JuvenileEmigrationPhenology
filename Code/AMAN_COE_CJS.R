@@ -1169,7 +1169,7 @@ legend(x = 10, y=.5, bty = 'n',
 # Temperature and precipitation covariates
 # Time-dependent recapture and survival (best model based on DIC from Messerman et al., 2020)
 # Grand means
-# With immediate trap response 
+# With immediate trap response
 ###################################################################################################
 
 # Specify model in BUGS language
