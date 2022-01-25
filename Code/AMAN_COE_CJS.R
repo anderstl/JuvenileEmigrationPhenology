@@ -1972,7 +1972,7 @@ print(aa.cjs.trt.mass.cov.add3)#DIC=997.3
 plot(aa.cjs.trt.mass.cov.add3)
 
 ###################################################################################################
-#Best supported model structure based on DIC
+#Best supported model structure based on DIC, and best supported model overall?
 #12. Phi(t+g+mass+block+pen)P(.+g+block+pen): 
 # Treatment additive effect
 # Survival by mass, NO temperature or precipitation
@@ -2029,14 +2029,14 @@ cat("
     ##For survival
     
     #mean.phi~dnorm(0,0.001)
-    #mu.phi<-1/(1+exp(-mean.phi))              # Logit transformed survival grand mean/intercept
+    #mu.phi<-1/(1+exp(-mean.phi))             # Logit transformed survival grand mean/intercept
     
     beta.g1[1] <- 0                           # Corner constraint
     beta.g1[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. survival compared to treatment 1
     beta.g1[3] ~ dnorm(0, 0.01)I(-10,10)
     beta.g1[4] ~ dnorm(0, 0.01)I(-10,10)
     
-    beta.mass ~ dnorm(0, 0.01)I(-10, 10)     # Prior for mass slope parameter
+    beta.mass ~ dnorm(0, 0.01)I(-10, 10)      # Prior for mass slope parameter
 
     for (t in 1:(n.occasions-1)){
       epsilon.phi[t] ~ dnorm(0, tau.phi)      # Prior for survival residuals
@@ -2607,7 +2607,7 @@ plot(aa.cjs.trt.mass.cov.tt)
 
 ###################################################################################################
 #Best supported model structure based on DIC ****Does not converge
-#15. Phi(t*g+mass+cov+block+pen)P(.*g+block+pen): 
+#15. Phi(t*g+mass+cov+block+pen)P(.+g+block+pen): 
 # FULL MODEL
 # Treatment*time effect
 # Survival by mass, temperature, and precipitation
@@ -2770,7 +2770,7 @@ for(i in 1:length(trtvals)){
   trt.cont[,i]<-(aa.cjs.trt.mass.cov.rand1$sims.list$beta.e[,trtvals[[i]][[1]]]-aa.cjs.trt.mass.cov.rand1$sims.list$beta.e[,trtvals[[i]][[2]]])
 }
 ###################################################################################################
-#Fully time-dependent model ****Does not converge ****Does not converge
+#Fully time-dependent model ****Does not converge
 #16. Phi(t*g+mass+cov+block+pen)P(t*g+cov+block+pen): 
 # FULL MODEL
 # Treatment effect
