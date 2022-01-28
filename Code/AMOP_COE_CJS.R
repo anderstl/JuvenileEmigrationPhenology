@@ -517,7 +517,7 @@ ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J1", "J1", ao_wide$Treatment2)
 ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J3", "J3", ao_wide$Treatment2)
 ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J3", "J3", ao_wide$Treatment2)
 
-group_ao<-as.numeric(as.factor(ao_wide$Juv.Treat))
+group_ao<-as.numeric(ao_wide$Juv.Treat)
 group2_ao<-as.numeric(as.factor(ao_wide$Treatment2))
 block_ao<-as.numeric(ao_wide$Rel.Block)
 pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
@@ -3284,9 +3284,6 @@ cat("
       beta.m[u] ~ dunif(0, 1)        # Priors for time-specific recapture
     }
     
-    
-    #beta.a[1] <- 0                        # Corner constraints
-    #beta.e[1] <- 0  
     for (u in 1:g){
       beta.e[u] ~ dnorm(0, 0.1)I(-10,10)          # Prior for group-spec. recapture
       beta.a[u] ~ dnorm(0, 0.1)I(-10,10)          # Prior for group-spec. survival
@@ -3389,8 +3386,8 @@ phi.med <- phi.list %>% summarise_all(median, na.rm=TRUE)
 phi.lower <- as.numeric(phi.l %>% summarise_all(mean, na.rm=TRUE))
 phi.higher <- as.numeric(phi.h %>% summarise_all(mean, na.rm=TRUE))
 mean(phi.listv, na.rm = TRUE) #mean survival = 0.91
-median(phi.listv, na.rm = TRUE) #median survival= 0.95
-sd(phi.listv, na.rm = TRUE)#0.10
+median(phi.listv, na.rm = TRUE) #median survival= 0.96
+sd(phi.listv, na.rm = TRUE)#0.09
 phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.77
 phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.99
 
@@ -3434,13 +3431,13 @@ med.g1.phi<-median(g1.phi)#Overall treatment medians
 med.g2.phi<-median(g2.phi)
 med.g3.phi<-median(g3.phi)
 med.g4.phi<-median(g4.phi)
-means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8788234 0.9220187 0.9015657 0.8964496
-meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9442313 0.9538527 0.9461726 0.9460495
+means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8943092 0.9342185 0.9154442 0.9110601
+meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9534554 0.9621434 0.9560036 0.9548538
 sd.g1.phi<-sd(g1.phi)
 sd.g2.phi<-sd(g2.phi)
 sd.g3.phi<-sd(g3.phi)
 sd.g4.phi<-sd(g4.phi)
-sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.12140921 0.09808268 0.11153350 0.11377177
+sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.10384241 0.07389021 0.09097088 0.09336241
 
 #Figure of treatment-specific temporal survival
 par(mai=c(2,2,1,1), mgp=c(5,2,0))
@@ -3453,9 +3450,9 @@ points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2
 segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=2)
 points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
 segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
-legend(x = 10, y=.5, bty = 'n',
+legend(x = 9, y=.5, bty = 'n',
        #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
-       legend=c("L3J1", "L1J1", "L1J3", "L3J3"),
+       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
        lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
 #dev.off()
 
@@ -3470,8 +3467,8 @@ p.mean <- p.list %>% summarise_all(mean, na.rm=TRUE)
 p.med <- p.list %>% summarise_all(median, na.rm=TRUE) 
 p.lower <- as.numeric(p.l %>% summarise_all(mean, na.rm=TRUE))
 p.higher <- as.numeric(p.h %>% summarise_all(mean, na.rm=TRUE))
-mean(p.listv, na.rm = TRUE) #mean survival = 0.47
-median(p.listv, na.rm = TRUE) #median survival= 0.47
+mean(p.listv, na.rm = TRUE) #mean survival = 0.46
+median(p.listv, na.rm = TRUE) #median survival= 0.42
 sd(p.listv, na.rm = TRUE)#0.24
 p.ci.low<-mean(p.lv, na.rm = TRUE)#0.25
 p.ci.high<-mean(p.hv, na.rm = TRUE)#0.70
@@ -3516,13 +3513,13 @@ med.g1.p<-median(g1.p)#Overall treatment medians
 med.g2.p<-median(g2.p)
 med.g3.p<-median(g3.p)
 med.g4.p<-median(g4.p)
-means.p<-c(x.g1.p, x.g2.p, x.g3.p, x.g4.p)#0.4782272 0.4457388 0.4776066 0.4700967
-meds.p<-c(med.g1.p, med.g2.p, med.g3.p, med.g4.p) #0.4682450 0.4408879 0.4716733 0.4689110
+means.p<-c(x.g1.p, x.g2.p, x.g3.p, x.g4.p)#0.4674974 0.4357866 0.4668106 0.4585805
+meds.p<-c(med.g1.p, med.g2.p, med.g3.p, med.g4.p) #0.4235455 0.4031004 0.4301593 0.4297407
 sd.g1.p<-sd(g1.p)
 sd.g2.p<-sd(g2.p)
 sd.g3.p<-sd(g3.p)
 sd.g4.p<-sd(g4.p)
-sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.2372395 0.2419790 0.2360986 0.2347370
+sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.2373022 0.2419632 0.2362928 0.2341313
 
 #Figure of treatment-specific temporal recapture
 par(mai=c(2,2,1,1), mgp=c(5,2,0))
@@ -3535,9 +3532,9 @@ points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5
 segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=2)
 points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
 segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
-legend(x = 10, y=1.1, bty = 'n',
+legend(x = 8, y=1.1, bty = 'n',
        #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
-       legend=c("L3J1", "L1J1", "L1J3", "L3J3"),
+       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
        lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
 #dev.off()
 
@@ -3572,9 +3569,6 @@ plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]-ao.cjs.trt.mass.cov
 
 (sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])<=0,1,0))/
     sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])) * 100
-
-library(overlapping)
-library(lattice)
 
 
 #Group effect on survival

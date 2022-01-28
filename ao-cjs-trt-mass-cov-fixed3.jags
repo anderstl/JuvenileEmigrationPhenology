@@ -30,9 +30,6 @@
       beta.m[u] ~ dunif(0, 1)        # Priors for time-specific recapture
     }
     
-    
-    #beta.a[1] <- 0                        # Corner constraints
-    #beta.e[1] <- 0  
     for (u in 1:g){
       beta.e[u] ~ dnorm(0, 0.1)I(-10,10)          # Prior for group-spec. recapture
       beta.a[u] ~ dnorm(0, 0.1)I(-10,10)          # Prior for group-spec. survival

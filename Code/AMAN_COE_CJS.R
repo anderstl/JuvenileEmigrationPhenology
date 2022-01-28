@@ -2133,7 +2133,7 @@ plot(aa.cjs.trt.mass.cov.add4)
 # Time-dependent survival and constant recapture (best model based on DIC)
 # NO grand means
 # With immediate trap response 
-# With corner constraint
+# No corner constraint
 ###################################################################################################
 
 # Specify model in BUGS language
@@ -2269,9 +2269,9 @@ parameters <- c( "beta.g1","beta.mass",
 
 
 # MCMC settings
-ni <- 20000
+ni <- 60000
 nt <- 5
-nb <- 8000
+nb <- 30000
 nc <- 3
 
 # Call JAGS from R (JRT 55 min)
