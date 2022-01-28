@@ -3241,7 +3241,7 @@ plot(density(ao.cjs.trt.mass.cov.fixed2$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov
     sum(ao.cjs.trt.mass.cov.fixed2$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed2$sims.list$beta.a[,2])) * 100
 
 ###################################################################################################
-#18. Phi(t+g+mass+covs+block+pen)P(t+g+temp+block+pen): 
+#18. Phi(t+g+mass+covs+block+pen)P(t+g+temp+block+pen):  *****Use this model
 # Additive treatment effect
 # Survival by mass
 # Temperature covariate on survival
@@ -3388,10 +3388,10 @@ phi.mean <- phi.list %>% summarise_all(mean, na.rm=TRUE)
 phi.med <- phi.list %>% summarise_all(median, na.rm=TRUE) 
 phi.lower <- as.numeric(phi.l %>% summarise_all(mean, na.rm=TRUE))
 phi.higher <- as.numeric(phi.h %>% summarise_all(mean, na.rm=TRUE))
-mean(phi.listv, na.rm = TRUE) #mean survival = 0.90
+mean(phi.listv, na.rm = TRUE) #mean survival = 0.91
 median(phi.listv, na.rm = TRUE) #median survival= 0.95
-sd(phi.listv, na.rm = TRUE)#0.11
-phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.75
+sd(phi.listv, na.rm = TRUE)#0.10
+phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.77
 phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.99
 
 g1.phi<-as.matrix(subset(phi.list[1:36,]))
@@ -3576,20 +3576,6 @@ plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]-ao.cjs.trt.mass.cov
 library(overlapping)
 library(lattice)
 
-##  Create Treatments L1J1 and L3J1 density functions and display
-density1 = approxfun(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1], from = -3.5, to = 2.5))
-density3 = approxfun(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3], from = -3.5, to = 2.5))
-plot(density1, xlim=c(-3.5,2.5),ylab="Density")
-curve(density3, add=TRUE)
-lines(density1$x, density1$y-density3$y, col="green")
-## Solve for the intersection and plot to confirm
-minus1.3 = function(x) { density3(x) - density1(x) }
-plot(minus1.3, xlim=c(-4,4))
-Intersect = uniroot(minus1.3, c(-3.5, 2.5))$root
-points(Intersect, density1(Intersect), pch=20, col="red")
-# Integrate to get the area of the overlap
-integrate(density3, -3.5, Intersect)$value + 
-  integrate(density1, Intersect, 1)$value #AMAN and AMTE Phi distributions overlap 62.87%, with 37.13% confidence that true means differ
 
 #Group effect on survival
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]), xlim=c(-3,8))#L1J1

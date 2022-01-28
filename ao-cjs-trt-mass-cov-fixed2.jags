@@ -4,8 +4,8 @@
     ## Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (1/(1+exp(-(beta.a[group[i]] + beta.b*mass[i] + beta.t*temp[t] + beta.c[block[i]] + beta.d[pen[i]] + epsilon.phi[t])))) ^int[t]
-        p[i,t] <- 1/(1+exp(-(beta.e[group[i]] + beta.m[m[i,t]] + beta.h[block[i],t] + beta.j[pen[i],t] + epsilon.p[t])))
+        phi[i,t] <- (1/(1+exp(-(beta.a[group[i]] + beta.b*mass[i] + beta.t*temp[t] + beta.g*precip[t]+ beta.c[block[i]] + beta.d[pen[i]] + epsilon.phi[t])))) ^int[t]
+        p[i,t] <- 1/(1+exp(-(beta.e[group[i]] + beta.m[m[i,t]] + beta.f*temp[t] + beta.h[block[i],t] + beta.j[pen[i],t] + epsilon.p[t])))
       } #t
     } #i
     
@@ -61,8 +61,11 @@
     tau.beta.j<-pow(sigma.beta.j,-2)
     sigma2.beta.j <- pow(sigma.beta.j, 2)
 
+    beta.f ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter on recapture
     beta.t ~ dnorm(0, 0.001)I(-10, 10)         # Prior for temp slope parameter on survival
+    beta.g ~ dnorm(0, 0.001)I(-10, 10)         # Prior for precip slope parameter on survival
 
+    
     # Likelihood 
     for (i in 1:nind){
     # Define latent state at first capture
@@ -78,3 +81,14 @@
     } #i
   }
 
+[1] 0.9102719
+[1] 0.952737
+[1] 0.09672725
+[1] 0.9858986
+[1] 0.8906689 0.9309158 0.9121196 0.9073834
+[1] 0.4616946
+[1] 0.4340208
+[1] 0.2360716
+[1] 0.4616946
+[1] 0.4340208
+[1] 0.4340208
