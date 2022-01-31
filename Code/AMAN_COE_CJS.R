@@ -2115,9 +2115,9 @@ parameters <- c( "beta.g1","beta.mass",
 
 
 # MCMC settings
-ni <- 20000
+ni <- 60000
 nt <- 5
-nb <- 8000
+nb <- 30000
 nc <- 3
 
 # Call JAGS from R (JRT 55 min)
@@ -2293,8 +2293,8 @@ phi.higher <- as.numeric(phi.h %>% summarise_all(mean, na.rm=TRUE))
 mean(phi.listv, na.rm = TRUE) #mean survival = 0.87
 median(phi.listv, na.rm = TRUE) #median survival= 0.95
 sd(phi.listv, na.rm = TRUE)#0.20
-phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.53
-phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.98
+phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.55
+phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.97
 
 g1.phi<-as.matrix(subset(phi.list[1:36,]))
 g2.phi<-as.matrix(subset(phi.list[37:72,]))
@@ -2336,13 +2336,13 @@ med.g1.phi<-median(g1.phi)#Overall treatment medians
 med.g2.phi<-median(g2.phi)
 med.g3.phi<-median(g3.phi)
 med.g4.phi<-median(g4.phi)
-means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8700113 0.8553893 0.8569909 0.8669944
-meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9507267 0.9405564 0.9442335 0.9517203
+means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8708020 0.8556910 0.8570171 0.8678066
+meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9541836 0.9441955 0.9469313 0.9532164
 sd.g1.phi<-sd(g1.phi)
 sd.g2.phi<-sd(g2.phi)
 sd.g3.phi<-sd(g3.phi)
 sd.g4.phi<-sd(g4.phi)
-sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.1978787 0.2033943 0.2055896 0.2017135
+sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.2001507 0.2071274 0.2087593 0.2034356
 
 #Figure of treatment-specific temporal survival
 par(mai=c(2,2,1,1), mgp=c(5,2,0))
@@ -2372,11 +2372,11 @@ p.mean <- p.list %>% summarise_all(mean, na.rm=TRUE)
 p.med <- p.list %>% summarise_all(median, na.rm=TRUE) 
 p.lower <- as.numeric(p.l %>% summarise_all(mean, na.rm=TRUE))
 p.higher <- as.numeric(p.h %>% summarise_all(mean, na.rm=TRUE))
-mean(p.listv, na.rm = TRUE) #mean survival = 0.30
+mean(p.listv, na.rm = TRUE) #mean survival = 0.31
 median(p.listv, na.rm = TRUE) #median survival= 0.27
 sd(p.listv, na.rm = TRUE)#0.09
 p.ci.low<-mean(p.lv, na.rm = TRUE)#0.19
-p.ci.high<-mean(p.hv, na.rm = TRUE)#0.45
+p.ci.high<-mean(p.hv, na.rm = TRUE)#0.44
 
 g1.p<-as.matrix(subset(p.list[1:36,]))
 g2.p<-as.matrix(subset(p.list[37:72,]))
@@ -2418,13 +2418,13 @@ med.g1.p<-median(g1.p)#Overall treatment medians
 med.g2.p<-median(g2.p)
 med.g3.p<-median(g3.p)
 med.g4.p<-median(g4.p)
-means.p<-c(x.g1.p, x.g2.p, x.g3.p, x.g4.p)#0.2820788 0.2848755 0.2966071 0.3276752
-meds.p<-c(med.g1.p, med.g2.p, med.g3.p, med.g4.p) #0.2540890 0.2540890 0.2790220 0.2879549
+means.p<-c(x.g1.p, x.g2.p, x.g3.p, x.g4.p)#0.2829697 0.2859278 0.2968621 0.3280439
+meds.p<-c(med.g1.p, med.g2.p, med.g3.p, med.g4.p) #0.2510888 0.2510146 0.2787384 0.2855799
 sd.g1.p<-sd(g1.p)
 sd.g2.p<-sd(g2.p)
 sd.g3.p<-sd(g3.p)
 sd.g4.p<-sd(g4.p)
-sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.2372395 0.2419790 0.2360986 0.2347370
+sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.07919079 0.09192346 0.08523798 0.10025805
 
 
 #Group effect on recapture
@@ -2458,10 +2458,6 @@ plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.
 
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])<=0,1,0))/
     sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])) * 100
-
-library(overlapping)
-library(lattice)
-
 
 #Group effect on survival
 plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]), xlim=c(-3,8))#L3J3
