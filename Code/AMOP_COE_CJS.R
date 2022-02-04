@@ -201,13 +201,13 @@ cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorr
 
 ao_stdtempc<-rep(NA,length(ao_abiotic$Tavg))
 ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
-# abiotic$temp.sd <- as.numeric(abiotic$temp.sd)
+ao_stdtempsd <- as.numeric(ao_abiotic$temp.sd)
 # stdtempsd<-rep(NA,length(abiotic$temp.sd))
 
 #Scale temp. and precip. covariates
 for (i in 1:length(ao_abiotic$Tmin)) {
   ao_stdtempc[i] <- (ao_abiotic$Tmin[i]-mean(ao_abiotic$Tmin[]))/sd(ao_abiotic$Tmin[])
-  #stdtempsd[i] <- (abiotic$temp.sd[i]-mean(abiotic$temp.sd[]))/sd(abiotic$temp.sd[])
+  ao_stdtempsd[i] <- (ao_abiotic$temp.sd[i]-mean(ao_abiotic$temp.sd[]))/sd(ao_abiotic$temp.sd[])
   ao_stdprecip[i] <- (ao_abiotic$Prcp[i]-mean(ao_abiotic$Prcp[]))/sd(ao_abiotic$Prcp[])
 }
 
@@ -550,7 +550,7 @@ ao_abiotic$log.Prcp<-log(ao_abiotic$Prcp+1)
 #Scale temp. and Prcp. covariates
 for (i in 1:length(ao_abiotic$Tmin)) {
   ao_stdtempc[i] <- (ao_abiotic$Tmin[i]-mean(ao_abiotic$Tmin[]))/sd(ao_abiotic$Tmin[])
-  #stdtempsd[i] <- (ao_abiotic$temp.sd[i]-mean(ao_abiotic$temp.sd[]))/sd(ao_abiotic$temp.sd[])
+  ao_stdtempsd[i] <- (ao_abiotic$temp.sd[i]-mean(ao_abiotic$temp.sd[]))/sd(ao_abiotic$temp.sd[])
   ao_stdprecip[i] <- (ao_abiotic$log.Prcp[i]-mean(ao_abiotic$log.Prcp[]))/sd(ao_abiotic$log.Prcp[])
   #ao_stdpropMax[i] <- (ao_abiotic$propMax[i]-mean(ao_abiotic$propMax[]))/sd(ao_abiotic$propMax[])
 }
@@ -3439,22 +3439,35 @@ sd.g3.phi<-sd(g3.phi)
 sd.g4.phi<-sd(g4.phi)
 sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.10384241 0.07389021 0.09097088 0.09336241
 
-#Figure of treatment-specific temporal survival
-par(mai=c(2,2,1,1), mgp=c(5,2,0))
-plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
-     ylim=c(0,1), ylab="Survival probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
-segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=2)
-points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
-segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=2)
-points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
-segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=2)
-points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
-segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
-legend(x = 9, y=.5, bty = 'n',
-       #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
-       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
-       lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
-#dev.off()
+
+#Panel of treatment-specific temporal survival
+pdf("~/GitHub/JuvenileEmigrationPhenology/Fig2.pdf", width = 15, height = 20)
+par(mai=c(2,2,1,2), mgp=c(5,2,0), oma=c(0,0,0,2), mfrow=c(2,1))
+plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
+     ylim=c(0,1), ylab="Survival probability", xlab="", cex.lab=2.5, cex.axis=2.5)
+segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
+points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
+segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
+points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
+segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
+points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
+segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
+
+##Add temperature data on z-axis
+par(new = TRUE)
+plot(x=(1:14), ao_stdtempc[1:14], type="b", lty=5, lwd=4, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
+     ylim=c(-3,3), pch=2, cex.lab=3, cex.axis=2.5, cex=2.5)
+segments((1:14), ao_stdtempc[1:14]-ao_stdtempsd[1:14], (1:14), ao_stdtempc[1:14]+ao_stdtempsd[1:14], col=1, lwd=4)
+axis(side=4, at = pretty(c(-3.2,3)), cex.axis=2.5)
+mtext(expression(Standardized ~ mean ~ air ~ temperature  ~ degree ~ C), side=4, las=0, line=5, cex=2.6)
+mtext("a", side=3, at=1, las=0, line=1, cex=3)
+legend(x = .5, y = -.5, bty = 'n', lwd=4,
+       legend=c("L1J1", "L1J3", "L3J1", "L3J3", "Temperature"),
+       lwd=c(2,2,2,2,2), pch=c(1,6,0,5,2), lty=c(3,2,1,4,5), cex=2.5,  
+       col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4", 1))
+
+
+
 
 #Calculate recapture distributions
 p.list<-as.data.frame(ao.cjs.trt.mass.cov.fixed3$mean$p)
@@ -3521,22 +3534,18 @@ sd.g3.p<-sd(g3.p)
 sd.g4.p<-sd(g4.p)
 sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.2373022 0.2419632 0.2362928 0.2341313
 
-#Figure of treatment-specific temporal recapture
-par(mai=c(2,2,1,1), mgp=c(5,2,0))
-plot(x=(1:14),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
+#Add panel of treatment-specific temporal recapture
+plot(x=(1:14),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
      ylim=c(0,1), ylab="Recapture probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
-segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=2)
-points(x=(1:14)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
-segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=2)
-points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
-segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=2)
-points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
-segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=2)
-legend(x = 8, y=1.1, bty = 'n',
-       #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
-       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
-       lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
-#dev.off()
+segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
+points(x=(1:14)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
+segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
+points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
+segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
+points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
+segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
+mtext("b", side=3, at=1, las=0, line=1, cex=3)
+dev.off()
 
 
 #Group effect on recapture

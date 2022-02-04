@@ -2345,6 +2345,7 @@ sd.g4.phi<-sd(g4.phi)
 sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.2001507 0.2071274 0.2087593 0.2034356
 
 #Figure of treatment-specific temporal survival
+pdf("~/GitHub/JuvenileEmigrationPhenology/Fig1.pdf", width = 10, height = 8)
 par(mai=c(2,2,1,1), mgp=c(5,2,0))
 plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
      ylim=c(0,1), ylab="Survival probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
@@ -2359,7 +2360,7 @@ legend(x = 10, y=.5, bty = 'n',
        #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
        legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
        lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
-#dev.off()
+dev.off()
 
 #Calculate recapture distributions
 p.list<-as.data.frame(aa.cjs.trt.mass.cov.add5$mean$p)

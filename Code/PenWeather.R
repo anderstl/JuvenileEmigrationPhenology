@@ -40,6 +40,7 @@ ao_wx_sum<-ao_wx1%>%
   summarise(Tmin=mean(TMIN,na.rm=T),
             Tmax=mean(TMAX,na.rm=T),
             Tavg=mean(TAVG,na.rm=T),
+            temp.sd=sd(TAVG, na.rm=T),
             Prcp=sum(PRCP,na.rm=T))
 saveRDS(ao_wx_sum,"~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
 
