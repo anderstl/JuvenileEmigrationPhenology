@@ -3751,8 +3751,8 @@ print(ao.cjs.trt.mass.cov.fixed4)
 plot(ao.cjs.trt.mass.cov.fixed4)
 
 #####################################################################################################
-# 20. DOes release date factor significantly influence survival?
-# Phi(rel+t)P(t): Model with fixed time-dependent survival and recapture (edited from Kery & Schaub 7.4.1)
+# 20. Does release date factor significantly influence survival?
+# Phi(rel+t)P(trap+t): Model with fixed time-dependent survival and recapture (edited from Kery & Schaub 7.4.1)
 # With immediate trap response
 # With fixed release cohort and time effects on survival and time effects on recapture
 ####################################################################################################

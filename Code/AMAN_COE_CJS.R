@@ -86,14 +86,15 @@ aa_df$Pre.Alive <- ifelse(aa_df$Pre.Alive >= 1, yes=1, no=0)
 ## concatenate data on the back end to create the capture history cells
 
 ## Create Capture History Matrix (messy... needs cleaned later)
-aa_ch.pa <- matrix(0, nrow=dim(aa_assign)[1], ncol=max(as.numeric(aa_recaps$Period), na.rm=T)+5)
+aa_ch.pa <- matrix(0, nrow=dim(aa_assign)[1], ncol=max(as.numeric(aa_recaps$Period), na.rm=T)+6)
 aa_ch.pa <- as.data.frame(aa_ch.pa)
-colnames(aa_ch.pa)[1:4] <- c("PIT_Tag", "Treatment", "Block", "Pen")
+colnames(aa_ch.pa)[1:5] <- c("PIT_Tag", "Treatment", "Block", "Pen", "Release")
 aa_ch.pa$PIT_Tag <- aa_assign$PIT_Tag
 aa_ch.pa$Treatment <- aa_assign$Treatment
 aa_ch.pa$Block <- aa_assign$Block
 aa_ch.pa$Pen <- aa_assign$Pen
-aa_ch.pa[,5] <- 1
+aa_ch.pa$Release <- aa_assign$Release_DOY
+aa_ch.pa[,6] <- 1
 
 aa_recaps$Moved <- ifelse(is.na(aa_recaps$Moved)==T, yes=0, no=aa_recaps$Moved)
 
@@ -111,7 +112,7 @@ for(i in 1:dim(aa_ch.pa)[1]){
   sdf <- subset(ag.recaps, ag.recaps$PIT_Tag == ind)
   
   if(dim(sdf)[1]>0){
-    for(c in 6:dim(aa_ch.pa)[2]){
+    for(c in 7:dim(aa_ch.pa)[2]){
       for(s in 1:dim(sdf)[1]){
         p <- sdf$Period[s]
         if((c-5) == p){
@@ -124,7 +125,7 @@ for(i in 1:dim(aa_ch.pa)[1]){
 
 
 ## isolate capture history matrix data only.
-aa_CH <- as.matrix(aa_ch.pa[,5:dim(aa_ch.pa)[2]])        
+aa_CH <- as.matrix(aa_ch.pa[,6:dim(aa_ch.pa)[2]])        
 
 #add mass to data frame
 aa_ch.pa<-merge(aa_ch.pa,aa_tagged[,c("PIT_Tag","Meta.Mass","Meta.Date")],by=c("PIT_Tag"))
@@ -474,6 +475,7 @@ group_aa<-as.numeric(as.factor(aa_ch.pa$Treatment))
 group2_aa<-as.numeric(as.factor(aa_ch.pa$Treatment2))
 block_aa<-as.numeric(aa_ch.pa$Block)
 pen_aa<-as.numeric(as.factor(paste(aa_ch.pa$Block,aa_ch.pa$Pen,sep="")))
+rel_aa<-as.numeric(as.factor(aa_ch.pa$Release))
 
 #define abiotic covariates
 aa_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/aa_abiotic.rds")
@@ -3316,3 +3318,92 @@ trt.cont<-matrix(NA,dim(aa.cjs.trt.mass.cov.rand.tt$sims.list$beta.a)[1],length(
 for(i in 1:length(trtvals)){
   trt.cont[,i]<-(aa.cjs.trt.mass.cov.rand.tt$sims.list$beta.a[,trtvals[[i]][[1]]]-aa.cjs.trt.mass.cov.rand.tt$sims.list$beta.a[,trtvals[[i]][[2]]])
 }
+
+#####################################################################################################
+# 17. Does release date factor significantly influence survival?
+# Phi(cohort+t)P(.): Model with fixed time-dependent survival and constant recapture (edited from Kery & Schaub 7.4.1)
+# With immediate trap response
+# With fixed cohort and time effects on survival
+####################################################################################################
+
+sink("amb-cjs-t-c-cohort.jags")
+cat("
+    model {
+    
+    # Priors and constraints
+    for (i in 1:nind){
+      for (t in f[i]:(n.occasions-1)){
+        phi[i,t] <- (1/(1+exp(-(alpha[group[i]] + gamma[t]))))^int[t]     # Time and release cohort-dependent survival
+        p[i,t] <- beta[m[i,t]]                                     # Constant recapture
+      } #t
+    } #i
+    
+    for(u in 1:2){
+      beta[u] ~ dunif(0, 1)              # Priors for recapture
+    }
+    
+    alpha[1] <- 0                        # Corner constraint
+    alpha[2] ~ dnorm(0, 0.01)I(-10,10)   # Priors for difference in release cohort-spec. survival compared to treatment 1
+    alpha[3] ~ dnorm(0, 0.01)I(-10,10)
+    
+    for(t in 1:(n.occasions-1)){
+      gamma[t] ~ dnorm(0, 0.01)I(-10,10)       # Prior for time-dependent survival
+      
+      phi.1[t] <- 1/(1 + exp(-gamma[t]))             # Back-transformed survival of cohort 1
+      phi.2[t] <- 1/(1 + exp(-gamma[t]-alpha[2]))    # Back-transformed survival of cohort 2
+      phi.3[t] <- 1/(1 + exp(-gamma[t]-alpha[3]))    # Back-transformed survival of cohort 3
+    }
+    
+    # Likelihood 
+    for (i in 1:nind){
+      # Define latent state at first capture 
+      z[i,f[i]] <- 1
+        for (t in (f[i]+1):n.occasions){
+        # State process
+          z[i,t] ~ dbern(mu1[i,t])
+          mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+        # Observation process
+          y[i,t] ~ dbern(mu2[i,t])
+          mu2[i,t] <- p[i,t-1] * z[i,t]
+        } #t
+      } #i
+    }
+    ",fill = TRUE)
+sink()
+
+# Bundle data
+aa_jags.data <- list(y = aa_CH, m=m_aa, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], 
+                     n.occasions = dim(aa_CH)[2], z = known.state.cjs(aa_CH), 
+                     g = length(unique(rel_aa)), group=rel_aa)
+
+# Initial values
+inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(2)), 
+                         gamma = rnorm(16), z = cjs.init.z(aa_CH,f_aa))}
+
+# Parameters monitored
+parameters <- c("alpha", "phi.1", "phi.2", "phi.3", "gamma", "beta","phi", "p")
+
+# MCMC settings
+ni <- 15000
+nt <- 10
+nb <- 7000
+nc <- 3
+
+# Call JAGS from R (BRT 2 min)
+amb.cjs.t.c.cohort <- jags(aa_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-t-c-cohort.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+print(amb.cjs.t.c.cohort)
+
+plot(c(1:16), amb.cjs.t.c.cohort$mean$phi.1, lty=1)
+lines(c(1:16), amb.cjs.t.c.cohort$mean$phi.1, col=1)
+lines(c(1:16), amb.cjs.t.c.cohort$mean$phi.2, col=2)
+lines(c(1:16), amb.cjs.t.c.cohort$mean$phi.3, col=3)
+
+plot(density(amb.cjs.t.c.cohort$sims.list$alpha[,1]), xlim=c(-3,3))#cohort 1
+lines(density(amb.cjs.t.c.cohort$sims.list$alpha[,2]), col=2)#cohort 2
+lines(density(amb.cjs.t.c.cohort$sims.list$alpha[,3]), col=3)#cohort 3
+
+
+#If difference of posteriors overlaps zero, no significant difference
+plot(density(amb.cjs.t.c.cohort$sims.list$alpha[,1]-amb.cjs.t.c.cohort$sims.list$alpha[,2]))
+plot(density(amb.cjs.t.c.cohort$sims.list$alpha[,1]-amb.cjs.t.c.cohort$sims.list$alpha[,3]))
+plot(density(amb.cjs.t.c.cohort$sims.list$alpha[,2]-amb.cjs.t.c.cohort$sims.list$alpha[,3]))
