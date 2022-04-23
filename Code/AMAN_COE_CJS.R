@@ -1974,7 +1974,6 @@ print(aa.cjs.trt.mass.cov.add3)#DIC=997.3
 plot(aa.cjs.trt.mass.cov.add3)
 
 ###################################################################################################
-#Best supported model structure based on DIC, and best supported model overall?
 #12. Phi(t+g+mass+block+pen)P(.+g+block+pen): 
 # Treatment additive effect
 # Survival by mass, NO temperature or precipitation
@@ -2128,7 +2127,7 @@ print(aa.cjs.trt.mass.cov.add4)#DIC=996.72
 plot(aa.cjs.trt.mass.cov.add4)
 
 ###################################################################################################
-#Best supported model structure based on DIC, and best supported model overall?
+# ****Best supported model structure based on DIC, and best supported model overall****
 #12. Phi(t+g+mass+block+pen)P(.+g+block+pen): 
 # Treatment additive effect
 # Survival by mass, NO temperature or precipitation
