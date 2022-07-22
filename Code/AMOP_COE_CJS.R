@@ -35,6 +35,14 @@ sex<-read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMOP/Siegel Salamande
 endfates<-merge(endfates,sex,by="PIT_Tag")
 endfates<-merge(endfates,penID,by=c("PIT_Tag","Juv.Treat","Juv.Pen","Treatment","Species"))
 
+recaps <- read_excel("~/GitRepos/JuvenileEmigrationPhenology/Data/AMOP/Recap_Database_2019-2020-Experiments_Master_20200125.xlsx", sheet=2,na=c("NA", ""))## recapture data
+penID <- read_excel("~/GitRepos/JuvenileEmigrationPhenology/Data/AMOP/Pens_Assignments_2019-2020-Experiments.xlsx", na=c("NA", ""))
+endfates<-read_excel("~/GitRepos/JuvenileEmigrationPhenology/Data/AMOP/BreakdownFates_2019-2020-Experiments.xlsx",na=c("NA",""))
+sex<-read_excel("~/GitRepos/JuvenileEmigrationPhenology/Data/AMOP/Siegel Salamander data.xlsx",na=c("NA",""))
+endfates<-merge(endfates,sex,by="PIT_Tag")
+endfates<-merge(endfates,penID,by=c("PIT_Tag","Juv.Treat","Juv.Pen","Treatment","Species"))
+
+
 ## --------------------------------
 
 ## Format/Merge Data:
@@ -76,6 +84,14 @@ df <- merge(recaps, penID, by=c("PIT_Tag"),all.x=T)
 
 ao_df<- df%>%
   filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))
+
+#metamorph sizes used in terrestrial pens
+ao_mass<-penID%>%filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))%>%
+  #group_by(Juv.Treat)%>%
+  summarise(meanMass=mean(Meta.Mass.g,na.rm=T),
+            sdMass=sd(Meta.Mass.g,na.rm=T),
+            minMass=min(Meta.Mass.g),
+            maxMass=max(Meta.Mass.g))
 
 #Build capture history matrix
 # ao_ch.pa <- matrix(0, nrow=dim(ao_penID)[1], ncol=max(as.numeric(ao_recaps$Period), na.rm=T))
@@ -197,6 +213,7 @@ pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
 
 #load weather data
 ao_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
+ao_abiotic <- readRDS("~/GitRepos/JuvenileEmigrationPhenology/ao_abiotic.rds")
 cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
 
 ao_stdtempc<-rep(NA,length(ao_abiotic$Tavg))
@@ -525,6 +542,7 @@ rel_ao<-as.numeric(ao_wide$Rel.Cohort)
 
 #define abiotic covariates
 ao_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
+ao_abiotic <- readRDS("~/GitRepos/JuvenileEmigrationPhenology/ao_abiotic.rds")
 #ao_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
 str(ao_abiotic)
 cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
@@ -3371,6 +3389,9 @@ nc <- 3
 
 # Call JAGS from R (JRT 55 min)
 ao.cjs.trt.mass.cov.fixed3 <- jags(ao.data, parallel=TRUE, ao.inits, parameters, "ao-cjs-trt-mass-cov-fixed3.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+ao.cjs.trt.mass.cov.fixed3<-readRDS("Results/amop.finalmod.rds")
+saveRDS(ao.cjs.trt.mass.cov.fixed3,file = "Results/amop.finalmod.rds")
+ao.cjs.trt.mass.cov.fixed3<-readRDS(file = "Results/amop.finalmod.rds")
 print(ao.cjs.trt.mass.cov.fixed3)
 
 plot(ao.cjs.trt.mass.cov.fixed3)
@@ -3392,22 +3413,22 @@ sd(phi.listv, na.rm = TRUE)#0.09
 phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.77
 phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.99
 
-g1.phi<-as.matrix(subset(phi.list[1:36,]))
-g2.phi<-as.matrix(subset(phi.list[37:72,]))
-g3.phi<-as.matrix(subset(phi.list[73:108,]))
-g4.phi<-as.matrix(subset(phi.list[109:144,]))
-g1.phi.dat<-as.data.frame(subset(phi.list[1:36,]))
-g2.phi.dat<-as.data.frame(subset(phi.list[37:72,]))
-g3.phi.dat<-as.data.frame(subset(phi.list[73:108,]))
-g4.phi.dat<-as.data.frame(subset(phi.list[109:144,]))
-g1.phil<-as.data.frame(subset(phi.l[1:36,])) #Spp.-specific lower CI
-g2.phil<-as.data.frame(subset(phi.l[37:72,]))
-g3.phil<-as.data.frame(subset(phi.l[73:108,]))
-g4.phil<-as.data.frame(subset(phi.l[109:144,]))
-g1.phih<-as.data.frame(subset(phi.h[1:36,])) #spp.-specific upper CI
-g2.phih<-as.data.frame(subset(phi.h[37:72,]))
-g3.phih<-as.data.frame(subset(phi.h[73:108,]))
-g4.phih<-as.data.frame(subset(phi.h[109:144,]))
+g1.phi<-as.matrix(subset(phi.list[ao.data$group==1,]))
+g2.phi<-as.matrix(subset(phi.list[ao.data$group==2,]))
+g3.phi<-as.matrix(subset(phi.list[ao.data$group==3,]))
+g4.phi<-as.matrix(subset(phi.list[ao.data$group==4,]))
+g1.phi.dat<-as.data.frame(subset(phi.list[ao.data$group==1,]))
+g2.phi.dat<-as.data.frame(subset(phi.list[ao.data$group==2,]))
+g3.phi.dat<-as.data.frame(subset(phi.list[ao.data$group==3,]))
+g4.phi.dat<-as.data.frame(subset(phi.list[ao.data$group==4,]))
+g1.phil<-as.data.frame(subset(phi.l[ao.data$group==1,])) #Spp.-specific lower CI
+g2.phil<-as.data.frame(subset(phi.l[ao.data$group==2,]))
+g3.phil<-as.data.frame(subset(phi.l[ao.data$group==3,]))
+g4.phil<-as.data.frame(subset(phi.l[ao.data$group==4,]))
+g1.phih<-as.data.frame(subset(phi.h[ao.data$group==1,])) #spp.-specific upper CI
+g2.phih<-as.data.frame(subset(phi.h[ao.data$group==2,]))
+g3.phih<-as.data.frame(subset(phi.h[ao.data$group==3,]))
+g4.phih<-as.data.frame(subset(phi.h[ao.data$group==4,]))
 phi.g1 <- g1.phi.dat %>% summarise_all(mean)
 phi.g2 <- g2.phi.dat %>% summarise_all(mean)
 phi.g3 <- g3.phi.dat %>% summarise_all(mean)
@@ -3443,25 +3464,38 @@ sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.10384241 0.07389021 0.09
 
 #Panel of treatment-specific temporal survival
 pdf("~/GitHub/JuvenileEmigrationPhenology/Fig2.pdf", width = 15, height = 20)
-par(mai=c(2,2,1,2), mgp=c(5,2,0), oma=c(0,0,0,2), mfrow=c(2,1))
-plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
-     ylim=c(0,1), ylab="Survival probability", xlab="", cex.lab=2.5, cex.axis=2.5)
-segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
-points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
-segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
-points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
-segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
-points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
-segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
+recapdates1<-c("")
+#par(mai=c(2,2,1,2), mgp=c(5,2,0), oma=c(0,0,0,2), mfrow=c(2,1))
+par(mai=c(1,1,0.25,0.25), mgp=c(3,1,0), oma=c(0,0,0,2), mfrow=c(2,1))
+plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, bty='l',
+     ylim=c(0,1), ylab=expression("Survival probability ("~italic(phi)~")"), xlab="",las=1)
+segments((1:14), g1.low, (1:14), g1.high, col="salmon1")
+points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
+segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3")
+points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1)
+segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue")
+points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4)
+segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4")
+mtext(at=c(2,4,6,8,10,12,14),labels=recapdates1,line=2,side=1)
+# par(mai=c(2,2,1,2), mgp=c(5,2,0), oma=c(0,0,0,2), mfrow=c(2,1))
+# plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
+#      ylim=c(0,1), ylab="Survival probability", xlab="", cex.lab=2.5, cex.axis=2.5)
+# segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
+# points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
+# segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
+# points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
+# segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
+# points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
+# segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
 
 ##Add temperature data on z-axis
 par(new = TRUE)
-plot(x=(1:14), ao_stdtempc[1:14], type="b", lty=5, lwd=4, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
-     ylim=c(-3,3), pch=2, cex.lab=3, cex.axis=2.5, cex=2.5)
-segments((1:14), ao_stdtempc[1:14]-ao_stdtempsd[1:14], (1:14), ao_stdtempc[1:14]+ao_stdtempsd[1:14], col=1, lwd=4)
-axis(side=4, at = pretty(c(-3.2,3)), cex.axis=2.5)
+plot(x=(1:14), ao_stdtempc[1:14], type="b", lty=5, lwd=2, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
+     ylim=c(-3,3), pch=2)
+segments((1:14), ao_stdtempc[1:14]-ao_stdtempsd[1:14], (1:14), ao_stdtempc[1:14]+ao_stdtempsd[1:14], col=1)
+axis(side=4, at = pretty(c(-3.2,3)))
 mtext(expression(Standardized ~ mean ~ air ~ temperature  ~ degree ~ C), side=4, las=0, line=5, cex=2.6)
-mtext("a", side=3, at=1, las=0, line=1, cex=3)
+mtext("a", side=3, at=1, las=1, line=1)
 legend(x = .5, y = -.5, bty = 'n', lwd=4,
        legend=c("L1J1", "L1J3", "L3J1", "L3J3", "Temperature"),
        lwd=c(2,2,2,2,2), pch=c(1,6,0,5,2), lty=c(3,2,1,4,5), cex=2.5,  
@@ -3487,22 +3521,22 @@ sd(p.listv, na.rm = TRUE)#0.24
 p.ci.low<-mean(p.lv, na.rm = TRUE)#0.25
 p.ci.high<-mean(p.hv, na.rm = TRUE)#0.70
 
-g1.p<-as.matrix(subset(p.list[1:36,]))
-g2.p<-as.matrix(subset(p.list[37:72,]))
-g3.p<-as.matrix(subset(p.list[73:108,]))
-g4.p<-as.matrix(subset(p.list[109:144,]))
-g1.p.dat<-as.data.frame(subset(p.list[1:36,]))
-g2.p.dat<-as.data.frame(subset(p.list[37:72,]))
-g3.p.dat<-as.data.frame(subset(p.list[73:108,]))
-g4.p.dat<-as.data.frame(subset(p.list[109:144,]))
-g1.pl<-as.data.frame(subset(p.l[1:36,])) #Spp.-specific lower CI
-g2.pl<-as.data.frame(subset(p.l[37:72,]))
-g3.pl<-as.data.frame(subset(p.l[73:108,]))
-g4.pl<-as.data.frame(subset(p.l[109:144,]))
-g1.ph<-as.data.frame(subset(p.h[1:36,])) #spp.-specific upper CI
-g2.ph<-as.data.frame(subset(p.h[37:72,]))
-g3.ph<-as.data.frame(subset(p.h[73:108,]))
-g4.ph<-as.data.frame(subset(p.h[109:144,]))
+g1.p<-as.matrix(subset(p.list[ao.data$group==1,]))
+g2.p<-as.matrix(subset(p.list[ao.data$group==2,]))
+g3.p<-as.matrix(subset(p.list[ao.data$group==3,]))
+g4.p<-as.matrix(subset(p.list[ao.data$group==4,]))
+g1.p.dat<-as.data.frame(subset(p.list[ao.data$group==1,]))
+g2.p.dat<-as.data.frame(subset(p.list[ao.data$group==2,]))
+g3.p.dat<-as.data.frame(subset(p.list[ao.data$group==3,]))
+g4.p.dat<-as.data.frame(subset(p.list[ao.data$group==4,]))
+g1.pl<-as.data.frame(subset(p.l[ao.data$group==1,])) #Spp.-specific lower CI
+g2.pl<-as.data.frame(subset(p.l[ao.data$group==2,]))
+g3.pl<-as.data.frame(subset(p.l[ao.data$group==3,]))
+g4.pl<-as.data.frame(subset(p.l[ao.data$group==4,]))
+g1.ph<-as.data.frame(subset(p.h[ao.data$group==1,])) #spp.-specific upper CI
+g2.ph<-as.data.frame(subset(p.h[ao.data$group==2,]))
+g3.ph<-as.data.frame(subset(p.h[ao.data$group==3,]))
+g4.ph<-as.data.frame(subset(p.h[ao.data$group==4,]))
 p.g1 <- g1.p.dat %>% summarise_all(mean)
 p.g2 <- g2.p.dat %>% summarise_all(mean)
 p.g3 <- g3.p.dat %>% summarise_all(mean)
@@ -3536,16 +3570,26 @@ sd.g4.p<-sd(g4.p)
 sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.2373022 0.2419632 0.2362928 0.2341313
 
 #Add panel of treatment-specific temporal recapture
-plot(x=(1:14),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
-     ylim=c(0,1), ylab="Recapture probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
-segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
-points(x=(1:14)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
-segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
-points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
-segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
-points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
-segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
-mtext("b", side=3, at=1, las=0, line=1, cex=3)
+plot(x=(1:14),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, bty='l',las=1,
+     ylim=c(0,1), ylab=expression("Recapture probability ("~italic(rho)~")"), xlab="Recapture occasion")
+segments((1:14), g1.low, (1:14), g1.high, col="salmon1")
+points(x=(1:14)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
+segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3")
+points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1)
+segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue")
+points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4)
+segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4")
+mtext("b", side=3, at=1, las=0, line=1)
+# plot(x=(1:14),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
+#      ylim=c(0,1), ylab="Recapture probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
+# segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
+# points(x=(1:14)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
+# segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
+# points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
+# segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
+# points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
+# segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
+# mtext("b", side=3, at=1, las=0, line=1, cex=3)
 dev.off()
 
 
@@ -3817,9 +3861,9 @@ inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(2)),
 parameters <- c("alpha", "phi.cohort21", "phi.cohort22", "phi.cohort23", "gamma",  "gamma.p", "beta","phi", "p")
 
 # MCMC settings
-ni <- 50000
+ni <- 5000
 nt <- 5
-nb <- 30000
+nb <- 3000
 nc <- 3
 
 # Call JAGS from R (BRT 6 min)

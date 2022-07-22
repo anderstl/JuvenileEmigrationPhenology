@@ -38,6 +38,14 @@ aa_recaps <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/AMAN_pheno
 aa_assign <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
 aa_treats <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
 aa_tagged <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
+
+
+aa_recaps <- read.csv("~/GitRepos/JuvenileEmigrationPhenology/Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
+#aa_weather <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
+
+aa_assign <- read_excel("~/GitRepos/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
+aa_treats <- read.csv("~/GitRepos/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
+aa_tagged <- read_excel("~/GitRepos/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
 ## --------------------------------
 
 
@@ -124,12 +132,18 @@ for(i in 1:dim(aa_ch.pa)[1]){
 }
 
 
+#sort by treatment
+#aa_ch.pa<-arrange(aa_ch.pa,c(Treatment))
+
 ## isolate capture history matrix data only.
-aa_CH <- as.matrix(aa_ch.pa[,6:dim(aa_ch.pa)[2]])        
+aa_CH <- as.matrix(aa_ch.pa[,6:dim(aa_ch.pa)[2]])   
 
 #add mass to data frame
 aa_ch.pa<-merge(aa_ch.pa,aa_tagged[,c("PIT_Tag","Meta.Mass","Meta.Date")],by=c("PIT_Tag"))
 aa_ch.pa<-aa_ch.pa[-(aa_ch.pa$PIT_Tag=="x0966" & aa_ch.pa$Meta.Mass==2.21),]#drop duplicate mass?
+
+#sort by treatment again
+#aa_ch.pa<-arrange(aa_ch.pa,c(Treatment))
 
 ## ------------------
 ## Analyze Survival:
@@ -189,6 +203,13 @@ for(i in 1:(nrow(interval_aa)-1)){
 }
 interval_aa$int<-interval_aa$days/mean(interval_aa$days)
 
+#metamorph size used in terrestrial pens
+aa.mass<-aa_ch.pa%>%
+  #group_by(Treatment)%>%
+  summarise(meanMass=mean(Meta.Mass,na.rm=T),
+            sdMass=sd(Meta.Mass,na.rm=T),
+            minMass=min(Meta.Mass),
+            maxMass=max(Meta.Mass))
 
 ### Basic models
 #############################################################
@@ -479,6 +500,7 @@ rel_aa<-as.numeric(as.factor(aa_ch.pa$Release))
 
 #define abiotic covariates
 aa_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/aa_abiotic.rds")
+aa_abiotic <- readRDS("~/GitRepos/JuvenileEmigrationPhenology/aa_abiotic.rds")
 aa_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
 str(aa_abiotic)
 cor.test(as.numeric(aa_abiotic$Tmin), as.numeric(aa_abiotic$Prcp)) #Not autocorrelated
@@ -2235,14 +2257,25 @@ cat("
       } #t
     } #i
   }
+  
+
 ",fill = TRUE)
 sink()
 
 
 # Bundle data
-aa.data <- list(y = aa_CH, int=interval_aa$int, f = f_aa, nind = dim(aa_CH)[1], n.occasions = dim(aa_CH)[2], z = known.state.cjs(aa_CH), 
-                nblock = length(unique(block_aa)), block = as.numeric(block_aa), npen = length(unique(pen_aa)), pen = as.numeric(pen_aa),
-                mass=stdmass_aa, g = length(unique(group_aa)), group=group_aa, m=m_aa)
+aa.data <- list(y = aa_CH, int=interval_aa$int, 
+                f = f_aa, nind = dim(aa_CH)[1], 
+                n.occasions = dim(aa_CH)[2], 
+                z = known.state.cjs(aa_CH), 
+                nblock = length(unique(block_aa)), 
+                block = as.numeric(block_aa), 
+                npen = length(unique(pen_aa)), 
+                pen = as.numeric(pen_aa),
+                mass=stdmass_aa, 
+                g = length(unique(group_aa)), 
+                group=group_aa, 
+                m=m_aa)
 
 # Initial values (probably need to adjust thse to match dimensions of certain parameters)
 aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
@@ -2276,8 +2309,17 @@ nb <- 30000
 nc <- 3
 
 # Call JAGS from R (JRT 55 min)
-aa.cjs.trt.mass.cov.add5 <- jags(aa.data, parallel=TRUE, aa.inits, parameters, "aa-cjs-trt-mass-cov-add5.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+aa.cjs.trt.mass.cov.add5 <- jags(aa.data, parallel=TRUE, 
+                                 aa.inits, 
+                                 parameters, 
+                                 "aa-cjs-trt-mass-cov-add5.jags", 
+                                 n.chains = nc, 
+                                 n.thin = nt, 
+                                 n.iter = ni, 
+                                 n.burnin = nb)
 print(aa.cjs.trt.mass.cov.add5)#DIC=996.72
+#aa.cjs.trt.mass.cov.add5<-readRDS("Results/aman.finalmod.rds")
+saveRDS(aa.cjs.trt.mass.cov.add5,file = "Results/aman.finalmod.rds")
 plot(aa.cjs.trt.mass.cov.add5)
 
 #Calculate phi distributions
@@ -2297,22 +2339,23 @@ sd(phi.listv, na.rm = TRUE)#0.20
 phi.ci.low<-mean(phi.lv, na.rm = TRUE)#0.55
 phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.97
 
-g1.phi<-as.matrix(subset(phi.list[1:36,]))
-g2.phi<-as.matrix(subset(phi.list[37:72,]))
-g3.phi<-as.matrix(subset(phi.list[73:108,]))
-g4.phi<-as.matrix(subset(phi.list[109:144,]))
-g1.phi.dat<-as.data.frame(subset(phi.list[1:36,]))
-g2.phi.dat<-as.data.frame(subset(phi.list[37:72,]))
-g3.phi.dat<-as.data.frame(subset(phi.list[73:108,]))
-g4.phi.dat<-as.data.frame(subset(phi.list[109:144,]))
-g1.phil<-as.data.frame(subset(phi.l[1:36,])) #Spp.-specific lower CI
-g2.phil<-as.data.frame(subset(phi.l[37:72,]))
-g3.phil<-as.data.frame(subset(phi.l[73:108,]))
-g4.phil<-as.data.frame(subset(phi.l[109:144,]))
-g1.phih<-as.data.frame(subset(phi.h[1:36,])) #spp.-specific upper CI
-g2.phih<-as.data.frame(subset(phi.h[37:72,]))
-g3.phih<-as.data.frame(subset(phi.h[73:108,]))
-g4.phih<-as.data.frame(subset(phi.h[109:144,]))
+#changed how group membership works- matches data so we don't have re-order everything. 
+g1.phi<-as.matrix(subset(phi.list[aa.data$group==1,]))
+g2.phi<-as.matrix(subset(phi.list[aa.data$group==2,]))
+g3.phi<-as.matrix(subset(phi.list[aa.data$group==3,]))
+g4.phi<-as.matrix(subset(phi.list[aa.data$group==4,]))
+g1.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==1,]))
+g2.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==2,]))
+g3.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==3,]))
+g4.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==4,]))
+g1.phil<-as.data.frame(subset(phi.l[aa.data$group==1,])) #Spp.-specific lower CI
+g2.phil<-as.data.frame(subset(phi.l[aa.data$group==2,]))
+g3.phil<-as.data.frame(subset(phi.l[aa.data$group==3,]))
+g4.phil<-as.data.frame(subset(phi.l[aa.data$group==4,]))
+g1.phih<-as.data.frame(subset(phi.h[aa.data$group==1,])) #spp.-specific upper CI
+g2.phih<-as.data.frame(subset(phi.h[aa.data$group==2,]))
+g3.phih<-as.data.frame(subset(phi.h[aa.data$group==3,]))
+g4.phih<-as.data.frame(subset(phi.h[aa.data$group==4,]))
 phi.g1 <- g1.phi.dat %>% summarise_all(mean)
 phi.g2 <- g2.phi.dat %>% summarise_all(mean)
 phi.g3 <- g3.phi.dat %>% summarise_all(mean)
@@ -2346,21 +2389,38 @@ sd.g4.phi<-sd(g4.phi)
 sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.2001507 0.2071274 0.2087593 0.2034356
 
 #Figure of treatment-specific temporal survival
-pdf("~/GitHub/JuvenileEmigrationPhenology/Fig1.pdf", width = 10, height = 8)
-par(mai=c(2,2,1,1), mgp=c(5,2,0))
-plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
-     ylim=c(0,1), ylab="Survival probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
-segments((1:16), g1.low, (1:16), g1.high, col="salmon1", lwd=2)
-points(x=(1:16)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
-segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3", lwd=2)
-points(x=(1:16)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
-segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue", lwd=2)
-points(x=(1:16)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
-segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4", lwd=2)
+#pdf("~/GitHub/JuvenileEmigrationPhenology/Fig1.pdf", width = 10, height = 8)
+png("Results/Fig1_aman.png", width = 5, height = 5,res=500,units="in")
+recapdates<-c("8/1/18","9/12/18","11/7/18","3/12/19","5/7/19")
+par(mai=c(1,1,0.25,0.25), mgp=c(3,1,0))
+plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",bty='l',las=T,xaxt="n",
+     ylim=c(0,1), ylab=expression("Survival probability ("~italic(phi)~")"), xlab="Recapture Occasion")
+axis(1,at = c(1,4,8,12,16))
+segments((1:16), g1.low, (1:16), g1.high, col="salmon1")
+points(x=(1:16)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
+segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3")
+points(x=(1:16)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1)
+segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue")
+points(x=(1:16)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4)
+segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4")
+mtext(line=2,side=1,at=c(1,4,8,12,16),recapdates,cex.axis=0.75)
 legend(x = 10, y=.5, bty = 'n',
-       #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
        legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
-       lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
+       pch=c(1,6,0,5), lty=c(3,2,1,4), col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
+# par(mai=c(2,2,1,1), mgp=c(5,2,0))
+# plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=3, bty='l',
+#      ylim=c(0,1), ylab="Survival probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
+# segments((1:16), g1.low, (1:16), g1.high, col="salmon1", lwd=2)
+# points(x=(1:16)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=2)
+# segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3", lwd=2)
+# points(x=(1:16)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=2)
+# segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue", lwd=2)
+# points(x=(1:16)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=2)
+# segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4", lwd=2)
+# legend(x = 10, y=.5, bty = 'n',
+#        #legend=c(as.expression(bquote(italic(.("Ambystoma annulatum")))),as.expression(bquote(italic(.("Ambystoma maculatum")))), as.expression(bquote(italic(.("Ambystoma texanum"))))),
+#        legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
+#        lwd=c(3,2,2), pch=c(1,6,0,5), lty=c(3,2,1,4), cex=2.5,  col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
 dev.off()
 
 #Calculate recapture distributions
@@ -2380,22 +2440,22 @@ sd(p.listv, na.rm = TRUE)#0.09
 p.ci.low<-mean(p.lv, na.rm = TRUE)#0.19
 p.ci.high<-mean(p.hv, na.rm = TRUE)#0.44
 
-g1.p<-as.matrix(subset(p.list[1:36,]))
-g2.p<-as.matrix(subset(p.list[37:72,]))
-g3.p<-as.matrix(subset(p.list[73:108,]))
-g4.p<-as.matrix(subset(p.list[109:164,]))
-g1.p.dat<-as.data.frame(subset(p.list[1:36,]))
-g2.p.dat<-as.data.frame(subset(p.list[37:72,]))
-g3.p.dat<-as.data.frame(subset(p.list[73:108,]))
-g4.p.dat<-as.data.frame(subset(p.list[109:164,]))
-g1.pl<-as.data.frame(subset(p.l[1:36,])) #Spp.-specific lower CI
-g2.pl<-as.data.frame(subset(p.l[37:72,]))
-g3.pl<-as.data.frame(subset(p.l[73:108,]))
-g4.pl<-as.data.frame(subset(p.l[109:164,]))
-g1.ph<-as.data.frame(subset(p.h[1:36,])) #spp.-specific upper CI
-g2.ph<-as.data.frame(subset(p.h[37:72,]))
-g3.ph<-as.data.frame(subset(p.h[73:108,]))
-g4.ph<-as.data.frame(subset(p.h[109:164,]))
+g1.p<-as.matrix(subset(p.list[aa.data$group==1,]))
+g2.p<-as.matrix(subset(p.list[aa.data$group==2,]))
+g3.p<-as.matrix(subset(p.list[aa.data$group==3,]))
+g4.p<-as.matrix(subset(p.list[aa.data$group==4,]))
+g1.p.dat<-as.data.frame(subset(p.list[aa.data$group==1,]))
+g2.p.dat<-as.data.frame(subset(p.list[aa.data$group==2,]))
+g3.p.dat<-as.data.frame(subset(p.list[aa.data$group==3,]))
+g4.p.dat<-as.data.frame(subset(p.list[aa.data$group==4,]))
+g1.pl<-as.data.frame(subset(p.l[aa.data$group==1,])) #Spp.-specific lower CI
+g2.pl<-as.data.frame(subset(p.l[aa.data$group==2,]))
+g3.pl<-as.data.frame(subset(p.l[aa.data$group==3,]))
+g4.pl<-as.data.frame(subset(p.l[aa.data$group==4,]))
+g1.ph<-as.data.frame(subset(p.h[aa.data$group==1,])) #spp.-specific upper CI
+g2.ph<-as.data.frame(subset(p.h[aa.data$group==2,]))
+g3.ph<-as.data.frame(subset(p.h[aa.data$group==3,]))
+g4.ph<-as.data.frame(subset(p.h[aa.data$group==4,]))
 p.g1 <- g1.p.dat %>% summarise_all(mean)
 p.g2 <- g2.p.dat %>% summarise_all(mean)
 p.g3 <- g3.p.dat %>% summarise_all(mean)
@@ -2435,63 +2495,87 @@ lines(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]), col=2)#L1J3
 lines(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]), col=3)#L3J1
 lines(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4]), col=4)#L3J3
 
-#If difference of posteriors overlaps zero, no significant difference
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4]))
+#If difference of posteriors for recapture overlaps zero, no significant difference
+par(mfrow=c(3,2))
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]),main="L1J1-L1J3",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]),main="L1J1-L3J1",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4]),main="L1J1-L3J3",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]),main="L1J3-L3J1",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4]),main="L1J3-L3J3",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4]),main="L3J1-L3J3",xlab="")
+abline(v=0,col="red")
 
-#Calculate % of posterior of differences overlapping zero
+#Calculate % of posterior of differences overlapping zero- is this right? shouldn't it just be divided by 18k
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2])) * 100
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1])) * 100
 
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3])) * 100
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1])) * 100
 
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])) * 100
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1])) * 100
 
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3])) * 100
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1])) * 100
 
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])) * 100
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1])) * 100
 
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])) * 100
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,4])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g2[,1])) * 100
 
-#Group effect on survival
+#Group effect on survival (I don't think labels are right at end- shoudl be in alphabetical order)
 plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]), xlim=c(-3,8))#L3J3
 lines(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]), col=2)#L3J1
 lines(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]), col=3)#L1J3
 lines(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]), col=4)#L1J1
 
 #If difference of posteriors overlaps zero, no significant difference
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]))
-plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]))
+par(mfrow=c(3,2))
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]),main="L1J1-L1J3",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]),main="L1J1-L3J1",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]),main="L1J1-L3J3",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]),main="L1J3-L3J1",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]),main="L1J3-L3J3",xlab="")
+abline(v=0,col="red")
+plot(density(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]),main="L3J1-L3J3",xlab="")
+abline(v=0,col="red")
 
 #Calculate % of posterior of differences overlapping zero
-(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])) * 100
-
-(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])) * 100
-
-(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])) * 100
-
-(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])) * 100
-
-(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])) * 100
-
 (sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2])<=0,1,0))/
-    sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2])) * 100
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1])) * 100
+(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])<=0,1,0))/
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1])) * 100
+(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])<=0,1,0))/
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1])) * 100
+(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])<=0,1,0))/
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1])) * 100
+(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,2]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])<=0,1,0))/
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1])) * 100
+(sum(ifelse((aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,3]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])<=0,1,0))/
+    #sum(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1]-aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,4])) * 100
+    length(aa.cjs.trt.mass.cov.add5$sims.list$beta.g1[,1])) * 100
+
 
 ###################################################################################################
 #Best supported model structure based on DIC
