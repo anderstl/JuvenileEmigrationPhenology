@@ -34,8 +34,7 @@ vioplot(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1],
         ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3], 
         ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4], 
         names=c("L1J1", "L1J3", "L3J1", "L3J3"),  
-        ylim=c(-4, 2.7), col=c("plum4", "lightskyblue3", "peachpuff", "thistle1"),
-        cex.lab=3, cex.axis=2.5)
+        col=c("plum4", "lightskyblue3", "peachpuff", "thistle1"))
 mtext("Effect size- Recapture", side=2, las=0, line=6, cex=2.5)
 mtext("b", side=3, at=0.6, las=0, line=1, cex=2.5)
 mtext(c("A", "AB", "AB", "B"), side=3, at=c(1:4), las=0, line=0, cex=1.5)
@@ -45,8 +44,7 @@ vioplot(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1],
         ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3], 
         ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4], 
         names=c("L1J1", "L1J3", "L3J1", "L3J3"),  
-        ylim=c(-4, 2.7), col=c("plum4", "lightskyblue3", "peachpuff", "thistle1"),
-        cex.lab=3, cex.axis=2.5)
+        col=c("plum4", "lightskyblue3", "peachpuff", "thistle1"))
 mtext("Effect size- Recapture", side=2, las=0, line=6, cex=2.5)
 mtext("b", side=3, at=0.6, las=0, line=1, cex=2.5)
 mtext(c("A", "AB", "AB", "B"), side=3, at=c(1:4), las=0, line=0, cex=1.5)

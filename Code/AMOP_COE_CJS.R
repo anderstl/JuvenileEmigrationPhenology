@@ -3466,7 +3466,7 @@ sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.10384241 0.07389021 0.09
 pdf("~/GitHub/JuvenileEmigrationPhenology/Fig2.pdf", width = 15, height = 20)
 recapdates1<-c("")
 #par(mai=c(2,2,1,2), mgp=c(5,2,0), oma=c(0,0,0,2), mfrow=c(2,1))
-par(mai=c(1,1,0.25,0.25), mgp=c(3,1,0), oma=c(0,0,0,2), mfrow=c(2,1))
+par(mai=c(1,1,1,1), mgp=c(3,1,0), oma=c(0,0,0,2), mfrow=c(2,1))
 plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, bty='l',
      ylim=c(0,1), ylab=expression("Survival probability ("~italic(phi)~")"), xlab="",las=1)
 segments((1:14), g1.low, (1:14), g1.high, col="salmon1")
@@ -3494,7 +3494,7 @@ plot(x=(1:14), ao_stdtempc[1:14], type="b", lty=5, lwd=2, col=1, axes = FALSE, b
      ylim=c(-3,3), pch=2)
 segments((1:14), ao_stdtempc[1:14]-ao_stdtempsd[1:14], (1:14), ao_stdtempc[1:14]+ao_stdtempsd[1:14], col=1)
 axis(side=4, at = pretty(c(-3.2,3)))
-mtext(expression(Standardized ~ mean ~ air ~ temperature  ~ degree ~ C), side=4, las=0, line=5, cex=2.6)
+mtext(expression(Standardized ~ mean ~ air ~ temperature  ~ degree ~ C), side=4, las=0, line=2)
 mtext("a", side=3, at=1, las=1, line=1)
 legend(x = .5, y = -.5, bty = 'n', lwd=4,
        legend=c("L1J1", "L1J3", "L3J1", "L3J3", "Temperature"),
@@ -3600,29 +3600,44 @@ lines(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]), col=3)#L3J1
 lines(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]), col=4)#L3J3
 
 #If difference of posteriors overlaps zero, no significant difference
+par(mfrow=c(3,2))
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]))
+abline(v=0,col="red")
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]))
+abline(v=0,col="red")
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]))
+abline(v=0,col="red")
+plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]))
+abline(v=0,col="red")
+plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]))
+abline(v=0,col="red")
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]))
+abline(v=0,col="red")
 
-#Calculate % of posterior of differences overlapping zero
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])) * 100
+#Calculate % of posterior of differences overlapping zero for recapture
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
+
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
+
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
 
 (sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
 
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
 
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])) * 100
-
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2])) * 100
-
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])) * 100
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,4])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,1])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.e[,3])) * 100
 
 
 #Group effect on survival
@@ -3631,31 +3646,45 @@ lines(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]), col=2)#L1J3
 lines(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3]), col=3)#L3J1
 lines(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]), col=4)#L3J3
 
-#If difference of posteriors overlaps zero, no significant difference
+#If difference of posteriors overlaps zero, no significant difference for survival
+par(mfrow=c(3,2))
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]))
+abline(v=0,col="red")
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3]))
+abline(v=0,col="red")
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]))
-plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]))
+abline(v=0,col="red")
 plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3]))
+abline(v=0,col="red")
+plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]))
+abline(v=0,col="red")
+plot(density(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]))
+abline(v=0,col="red")
 
 #Calculate % of posterior of differences overlapping zero
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
+
 (sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
-
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
-
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
 
 (sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4])) * 100
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
+
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
 
 (sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4])) * 100
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
 
-(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2])<=0,1,0))/
-    sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2])) * 100
+(sum(ifelse((ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,4])<=0,1,0))/
+    #sum(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,1]-ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,2])) * 100
+    length(ao.cjs.trt.mass.cov.fixed3$sims.list$beta.a[,3])) * 100
 
 ###################################################################################################
 #19. Phi(t+g+mass+covs+block+pen)P(t+g+temp+block+pen): 
