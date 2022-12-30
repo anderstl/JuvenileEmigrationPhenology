@@ -499,7 +499,7 @@ pen_aa<-as.numeric(as.factor(paste(aa_ch.pa$Block,aa_ch.pa$Pen,sep="")))
 rel_aa<-as.numeric(as.factor(aa_ch.pa$Release))
 
 #define abiotic covariates
-aa_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/aa_abiotic.rds")
+#aa_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/aa_abiotic.rds")
 aa_abiotic <- readRDS("~/GitRepos/JuvenileEmigrationPhenology/aa_abiotic.rds")
 aa_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
 str(aa_abiotic)
@@ -2214,7 +2214,7 @@ cat("
     beta.g1[3] ~ dnorm(0, 0.01)I(-10,10)
     beta.g1[4] ~ dnorm(0, 0.01)I(-10,10)
     
-    beta.mass ~ dnorm(0, 0.01)I(-10, 10)      # Prior for mass slope parameter
+    beta.mass ~ dnorm(0, 0.1)I(-10, 10)      # Prior for mass slope parameter
 
     for (t in 1:(n.occasions-1)){
       epsilon.phi[t] ~ dnorm(0, tau.phi)      # Prior for survival residuals
@@ -2303,9 +2303,9 @@ parameters <- c( "beta.g1","beta.mass",
 
 
 # MCMC settings
-ni <- 60000
-nt <- 5
-nb <- 30000
+ni <- 500000
+nt <- 25
+nb <- 100000
 nc <- 3
 
 # Call JAGS from R (JRT 55 min)
@@ -2318,8 +2318,8 @@ aa.cjs.trt.mass.cov.add5 <- jags(aa.data, parallel=TRUE,
                                  n.iter = ni, 
                                  n.burnin = nb)
 print(aa.cjs.trt.mass.cov.add5)#DIC=996.72
-#aa.cjs.trt.mass.cov.add5<-readRDS("Results/aman.finalmod.rds")
-saveRDS(aa.cjs.trt.mass.cov.add5,file = "Results/aman.finalmod.rds")
+aa.cjs.trt.mass.cov.add5<-readRDS("Results/aman.finalmod.rds")
+saveRDS(aa.cjs.trt.mass.cov.add5,file = "Results/aman.finalmod082322.rds")
 plot(aa.cjs.trt.mass.cov.add5)
 
 #Calculate phi distributions

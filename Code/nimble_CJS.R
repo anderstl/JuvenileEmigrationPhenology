@@ -966,25 +966,30 @@ ao_phi <- MCMCchains(samples_ao, #get phi values for all individuals
                   params = 'phi',  
                   mcmc.list = F)
 
+#organize into dataframe that is individual X time period
+#??does this fill the matrix in the right order?? 
 aophi.mean<-matrix(apply(ao_phi,2,mean),144,14) #does this put things in the right order? 
-ao_plotdat<-cbind(ao.data$group,aophi.mean)
-ao_plotdat1<-as.data.frame(ao_plotdat)%>%
+
+#combine with group 
+ao_plotdat<-as.data.frame(cbind(ao.data$group,aophi.mean))
+
+#average by period and group
+ao_avgplotdat<-ao_plotdat%>%
   gather(key="Period",value="Survival",-1)%>%
   mutate(Period=as.numeric(as.factor(Period)))%>%
   group_by(Period,V1)%>%
-  summarise(meanS=mean(Survival))
-ggplot(ao_plotdat1,aes(Period,meanS,group=V1,color=as.factor(V1)))+
+  summarise(meanS=mean(Survival))%>%
+  rename(Group=V1)
+
+#plot data- doesn't look right relative to what JAGS plot looks like
+ggplot(ao_avgplotdat,aes(Period,meanS,group=Group,color=as.factor(Group)))+
   geom_point()+
-  geom_line()
+  geom_line()+
+  theme_classic()+
+  lims(y=c(0,1))+
+  scale_color_manual(values=c('salmon1','deepskyblue3','midnightblue','orangered4'))+
+  labs(y=expression("Survival probability ("~italic(phi)~")"),x="Recapture Period")
 
-MCMCplot(object=samples_ao, 
-         #object2=samples_aa,
-         params = 'group.phi', 
-         ci = c(50, 90))
-
-ao_phi <- MCMCchains(samples_ao, #get phi values for all individuals
-                     params = 'phi',  
-                     mcmc.list = F)
 
 #annulatum
 aa_phi <- MCMCchains(samples_aa, #get phi values for all individuals
@@ -992,24 +997,27 @@ aa_phi <- MCMCchains(samples_aa, #get phi values for all individuals
                      mcmc.list = F)
 
 #organize into dataframe that is individual X time period
-#??does this fill the matrix in the right orderput things in the right order??
+#??does this fill the matrix in the right order?? 
 aaphi.mean<-matrix(apply(aa_phi,2,mean),192,16) 
 
 #combine with group 
-aa_plotdat<-as.data.frame(bind(aa.data$group,aaphi.mean))
+aa_plotdat<-as.data.frame(cbind(aa.data$group,aaphi.mean))
 
 #average by period and group
 aa_avgplotdat<-aa_plotdat%>%
   gather(key="Period",value="Survival",-1)%>%
   mutate(Period=as.numeric(as.factor(Period)))%>%
   group_by(Period,V1)%>%
-  summarise(meanS=mean(Survival))
+  summarise(meanS=mean(Survival))%>%
+  rename(Group=V1)
 
 #plot data- doesn't look right relative to what JAGS plot looks like
-ggplot(aa_avgplotdat,aes(Period,meanS,group=V1,color=as.factor(V1)))+
+ggplot(aa_avgplotdat,aes(Period,meanS,group=Group,color=as.factor(Group)))+
   geom_point()+
   geom_line()+
   theme_classic()+
-  lims(y=c(0,1))
+  lims(y=c(0,1))+
+  scale_color_manual(values=c('salmon1','deepskyblue3','midnightblue','orangered4'))+
+  labs(y=expression("Survival probability ("~italic(phi)~")"),x="Recapture Period")
 
 

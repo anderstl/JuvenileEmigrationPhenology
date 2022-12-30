@@ -3382,9 +3382,9 @@ parameters <- c("beta.a", "beta.e", "beta.b",
                 "epsilon.phi", "epsilon.p", "phi", "p") 
 
 # MCMC settings
-ni <- 60000
-nt <- 5
-nb <- 30000
+ni <- 250000
+nt <- 20
+nb <- 100000
 nc <- 3
 
 # Call JAGS from R (JRT 55 min)
@@ -3890,9 +3890,9 @@ inits <- function(){list(beta = runif(2, 0, 1), alpha = c(NA, rnorm(2)),
 parameters <- c("alpha", "phi.cohort21", "phi.cohort22", "phi.cohort23", "gamma",  "gamma.p", "beta","phi", "p")
 
 # MCMC settings
-ni <- 5000
+ni <- 20000
 nt <- 5
-nb <- 3000
+nb <- 10000
 nc <- 3
 
 # Call JAGS from R (BRT 6 min)
