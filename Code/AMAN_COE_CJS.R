@@ -32,12 +32,12 @@ library(mcmcplots)
 ## Set Directories and Import Data:
 ## --------------------------------
 
-aa_recaps <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
+#aa_recaps <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
 #aa_weather <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/AaCOE_CapenPark_Daily-Weather_20180601-20190531.xlsx")  ## weather data
 
-aa_assign <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
-aa_treats <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
-aa_tagged <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
+#aa_assign <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Pen_Assignments.xlsx")             ## initial pen assignments
+#aa_treats <- read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Treatments.csv", header=T)           ## treatment data
+#aa_tagged <- read_excel("~/GitHub/JuvenileEmigrationPhenology/Data/AMAN/Aa_COEffects_Tagged_Animals.xlsx")              ## all tagged animals and metamorphosis sizes
 
 
 aa_recaps <- read.csv("~/GitRepos/JuvenileEmigrationPhenology/Data/AMAN/AMAN_phenology_recap_data_master.csv", header=T)           ## recapture data
@@ -512,8 +512,8 @@ aa_stdprecip<-rep(NA,length(aa_abiotic$Prcp))
 aa_stdprecip<-rep(NA,length(aa_abiotic$Prcp))
 aa_stdpropMax<-rep(NA,length(aa_abiotic$propMax))
 aa_reachMax<-as.numeric(factor(c(1, 1, 1, rep(0,13)))) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
-#aa_abiotic$temp.sd <- as.numeric(aa_abiotic$temp.sd)
-#aa_stdtempsd<-rep(NA,length(aa_abiotic$temp.sd))
+aa_abiotic$temp.sd <- as.numeric(aa_abiotic$temp.sd)
+aa_stdtempsd<-rep(NA,length(aa_abiotic$temp.sd))
 hist(aa_abiotic$Tmin)
 shapiro.test(aa_abiotic$Tmin)
 
@@ -527,7 +527,7 @@ aa_abiotic$log.Prcp<-log(aa_abiotic$Prcp+1)
 #Scale temp. and Prcp. covariates
 for (i in 1:length(aa_abiotic$Tmin)) {
   aa_stdtempc[i] <- (aa_abiotic$Tmin[i]-mean(aa_abiotic$Tmin[]))/sd(aa_abiotic$Tmin[])
-  #stdtempsd[i] <- (aa_abiotic$temp.sd[i]-mean(aa_abiotic$temp.sd[]))/sd(aa_abiotic$temp.sd[])
+  aa_stdtempsd[i] <- (aa_abiotic$temp.sd[i]-mean(aa_abiotic$temp.sd[]))/sd(aa_abiotic$temp.sd[])
   aa_stdprecip[i] <- (aa_abiotic$log.Prcp[i]-mean(aa_abiotic$log.Prcp[]))/sd(aa_abiotic$log.Prcp[])
   aa_stdpropMax[i] <- (aa_abiotic$propMax[i]-mean(aa_abiotic$propMax[]))/sd(aa_abiotic$propMax[])
 }
@@ -2254,6 +2254,8 @@ cat("
         # Observation process
         y[i,t] ~ dbern(mu2[i,t])
         mu2[i,t] <- p[i,t-1] * z[i,t]
+        
+        #loglik[i,t] <- logdensity.bern(z[i,t],mu1[i,t])
       } #t
     } #i
   }

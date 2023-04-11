@@ -2,7 +2,7 @@
 library(dplyr)
 
 #read data
-pen_wx<-read.csv("~/GitHub/JuvenileEmigrationPhenology/Data/pen_weather.csv")
+pen_wx<-read.csv("~/GitRepos/JuvenileEmigrationPhenology/Data/pen_weather.csv")
 
 #format date column
 pen_wx$DATE<-as.Date(pen_wx$DATE,format = "%m/%d/%Y")
@@ -42,7 +42,7 @@ ao_wx_sum<-ao_wx1%>%
             Tavg=mean(TAVG,na.rm=T),
             temp.sd=sd(TAVG, na.rm=T),
             Prcp=sum(PRCP,na.rm=T))
-saveRDS(ao_wx_sum,"~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
+saveRDS(ao_wx_sum,"~/GitRepos/JuvenileEmigrationPhenology/ao_abiotic.rds")
 
 #filter annulatum weather
 aa_wx<-filter(pen_wx,DATE<"2019-07-07")
@@ -71,5 +71,6 @@ aa_wx_sum<-aa_wx1%>%
   summarise(Tmin=mean(TMIN,na.rm=T),
             Tmax=mean(TMAX,na.rm=T),
             Tavg=mean(TAVG,na.rm=T),
+            temp.sd=sd(TAVG, na.rm=T),
             Prcp=sum(PRCP,na.rm=T))
-saveRDS(aa_wx_sum,"~/GitHub/JuvenileEmigrationPhenology/aa_abiotic.rds")
+saveRDS(aa_wx_sum,"~/GitRepos/JuvenileEmigrationPhenology/aa_abiotic.rds")

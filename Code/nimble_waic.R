@@ -22,6 +22,7 @@ nc=3
 nb=7000
 nt=10
 
+library(nimble)
 #time constant p and phi
 mod1 <- nimbleCode({
     
@@ -51,6 +52,7 @@ mod1 <- nimbleCode({
         # Observation process
         y[i,t] ~ dbern(mu2[i,t])
         mu2[i,t] <- p[i,t-1] * z[i,t]
+      
       } #t
     } #i
   })
@@ -74,6 +76,9 @@ samples_ao1 <- nimbleMCMC(
   nburnin = nb,
   thin = nt,
   WAIC=T)
+
+library(MCMCvis)
+MCMCsummary(object = samples_ao1, params="mean.phi",round = 3)
 
 # Initial values
 aa.inits <- function(){list(mean.phi = runif(1, 0, 1), 
@@ -113,7 +118,7 @@ mod2 <- nimbleCode({
     }
     
     for (t in 1:(n.occasions-1)){
-      epsilon[t] ~ dnorm(0, sd = 1)
+      epsilon[t] ~ dnorm(0, sd = 100)
     }
     
     #sigma ~ dunif(0, 10)                     # Prior for standard deviation
@@ -259,7 +264,7 @@ mod4 <- nimbleCode({
   }
   
   for (t in 1:(n.occasions-1)){
-    epsilon[t] ~ dnorm(0, sd = 1)
+    epsilon[t] ~ dnorm(0, sd = 100)
   }
   
   #sigma ~ dunif(0, 10)                     # Prior for standard deviation
