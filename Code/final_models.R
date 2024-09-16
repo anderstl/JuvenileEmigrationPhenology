@@ -17,8 +17,9 @@ aa.data <- list(y = aa_CH, int=interval_aa$int,
                 pen = as.numeric(pen_aa),
                 temp = aa_stdtempc, precip = aa_stdprecip,
                 mass=stdmass_aa, 
-                g = length(unique(group_aa)), 
-                group=group_aa, 
+                daysheld=stddaysheld_aa, 
+                g = length(unique(group2_aa)), 
+                group=group2_aa, 
                 m=m_aa)
 
 # Bundle amop data
@@ -32,18 +33,19 @@ ao.data <- list(y = ao_CH, int=interval_ao$int,
                 pen = as.numeric(pen_ao),
                 temp = ao_stdtempc, precip = ao_stdprecip,
                 mass=stdmass_ao, 
-                g = length(unique(group_ao)), 
-                group=group_ao, 
+                daysheld=stddaysheld_ao, 
+                g = length(unique(group2_ao)), 
+                group=group2_ao, 
                 m=m_ao)
 
 # MCMC settings
-ni <- 100000
-nt <- 25
-nb <- 50000
+ni <- 50000
+nt <- 10
+nb <- 5000
 nc <- 3
 
 library(jagsUI)
-#covariate effects on phi
+#covariate effects on p
 
 # Specify model in BUGS language
 sink("coveffsp.jags")
@@ -218,8 +220,8 @@ cat("
     ## Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (1/(1+exp(-(phi.mass*mass[i]+ phi.temp*temp[t] + phi.pcp*precip[t] + phi.bl[block[i]] + phi.pen[pen[i]] + epsilon.phi[t]))))^int[t] #phi.group[group[i]]  + 
-        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + p.temp*temp[t]+ p.bl[block[i]] + p.pen[pen[i]] + epsilon.p[t]))) #p.group[group[i]] + 
+        phi[i,t] <- (1/(1+exp(-(phi.mass*mass[i]+ phi.temp*temp[t] + phi.pcp*precip[t] + phi.days*daysheld[t] + phi.bl[block[i]] + phi.pen[pen[i]] + epsilon.phi[t]))))^int[t] #phi.group[group[i]]  + 
+        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + p.bl[block[i]] + p.pen[pen[i]] + epsilon.p[t]))) #p.group[group[i]] + 
       } #t
     } #i
     
@@ -267,6 +269,7 @@ cat("
     phi.temp ~ dnorm(0, 1)I(-15, 15)     # Prior for temp slope parameter
     phi.pcp ~ dnorm(0, 0.01)I(-10, 10)      # Prior for precip slope parameter
     phi.mass ~dnorm(0,0.01)I(-10, 10)
+    phi.days ~dnorm(0,0.01)I(-10, 10)
 
     for (t in 1:(n.occasions-1)){
       epsilon.phi[t] ~ dnorm(0, tau.phi)      # Prior for survival residuals
@@ -319,6 +322,7 @@ aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa),
                             p.bl = runif(length(unique(block_aa)), 0, 1), 
                             phi.mass = runif(1, -5, 5),
                             phi.temp = runif(1, -5,5),
+                            phi.days = runif(1, -5,5),
                             #p.temp = runif(1, -5,5),
                             phi.pcp = runif(1, -5,5),
                             #p.pcp = runif(1, -5,5),
@@ -342,6 +346,7 @@ ao.inits <- function(){list(z = cjs.init.z(ao_CH,f_ao),
                             phi.mass = runif(1, -5, 5),
                             phi.temp = runif(1, -5,5),
                             p.temp = runif(1, -5,5),
+                            phi.days = runif(1, -5,5),
                             phi.pcp = runif(1, -5,5),
                             #p.pcp = runif(1, -5,5),
                             phi.pen = runif(length(unique(pen_ao)), 0, 1), 
@@ -356,7 +361,7 @@ ao.inits <- function(){list(z = cjs.init.z(ao_CH,f_ao),
                             sigma.phi.pen= runif(1, 0, 2))}
 
 # Parameters monitored
-parameters.phi <- c( "phi.pcp","phi.temp","phi.mass","p.temp","beta.m",
+parameters.phi <- c( "phi.pcp","phi.temp","phi.mass","phi.days","p.temp","beta.m",
                    "p.bl","p.pen","phi.bl","phi.pen") 
 
 aa_covphi_fit <- jags(aa.data, parallel=TRUE, 
@@ -401,13 +406,13 @@ cat("
       beta.m[u] ~ dunif(0, 1)        # Priors for previous recapture effect
     }
     
-    p.group[1] ~ dnorm(0, 0.01)I(-10,10)                   
-    p.group[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. recapture compared to treatment 1
-    p.group[3] ~ dnorm(0, 0.01)I(-10,10)
-    p.group[4] ~ dnorm(0, 0.01)I(-10,10)
-    # for(i in 1:g){
-    #   p.group[i]~dunif(0,1)
-    # }
+    #p.group[1] ~ dnorm(0, 0.01)I(-10,10)                   
+    #p.group[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. recapture compared to treatment 1
+    #p.group[3] ~ dnorm(0, 0.01)I(-10,10)
+    #p.group[4] ~ dnorm(0, 0.01)I(-10,10)
+    for(i in 1:g){
+      p.group[i]~dnorm(0, 0.01)I(-10,10)
+    }
     for (b in 1:nblock){
         #for (t in 1:(n.occasions-1)){
             p.bl[b] ~ dnorm(0,tau.p.bl)      #Prior for logit of mean recapture with random effect of block (random effect of block on p)
@@ -439,10 +444,13 @@ cat("
     #mean.phi~dnorm(0,0.001)
     #mu.phi<-1/(1+exp(-mean.phi))             # Logit transformed survival grand mean/intercept
     
-    phi.group[1] ~ dnorm(0, 0.01)I(-10,10)
-    phi.group[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. survival compared to treatment 1
-    phi.group[3] ~ dnorm(0, 0.01)I(-10,10)
-    phi.group[4] ~ dnorm(0, 0.01)I(-10,10)
+    #phi.group[1] ~ dnorm(0, 0.01)I(-10,10)
+    #phi.group[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. survival compared to treatment 1
+    #phi.group[3] ~ dnorm(0, 0.01)I(-10,10)
+    #phi.group[4] ~ dnorm(0, 0.01)I(-10,10)
+    for(i in 1:g){
+      phi.group[i]~dnorm(0, 0.01)I(-10,10)
+    }
     
     phi.temp ~ dnorm(0, 1)I(-15, 15)     # Prior for temp slope parameter
     phi.mass ~ dnorm(0,0.01)I(-10, 10)  # Prior for mass slope parameter
@@ -497,8 +505,8 @@ parameters.aa <- c("phi.group","p.group","phi.temp","phi.mass","beta.m",
 
 # Initial values (probably need to adjust thse to match dimensions of certain parameters)
 aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
-                            phi.group = rnorm(4), 
-                            p.group = rnorm(4), 
+                            phi.group = rnorm(2), 
+                            p.group = rnorm(2), 
                             #p.group = runif(4,0,1),
                             phi.bl = runif(length(unique(block_aa)), 0, 1), 
                             #p.bl = array(runif(64, 0, 1),dim=c(4,16)), 
@@ -528,22 +536,23 @@ aa_final_fit <- jags(aa.data, parallel=TRUE,
                       n.iter = ni, 
                       n.adapt = nb)
 print(aa_final_fit)
-saveRDS(aa_final_fit,'Results/aa_finalmod.rds')
-aa_final_fit<-readRDS("Results/aa_finalmod.rds")
+saveRDS(aa_final_fit,'Results/aa_finalmod_2g.rds')
+aa_final_fit<-readRDS("Results/aa_finalmod_2g.rds")
+plot(aa_final_fit)
 
 #median phi across all groups
-aa_phi_med<-median(aa_final_fit$sims.list$phi.group)
-aa_phi_ci<-quantile(aa_final_fit$sims.list$phi.group,probs = c(0.025,0.975))
-exp(aa_phi_med)/(1+exp(aa_phi_med)) #median
-exp(aa_phi_ci[1])/(1+exp(aa_phi_ci[1])) #lower
-exp(aa_phi_ci[2])/(1+exp(aa_phi_ci[2])) #upper
-
-#median p across all groups
-aa_p_med<-median(aa_final_fit$sims.list$p.group)
-aa_p_ci<-quantile(aa_final_fit$sims.list$p.group,probs = c(0.025,0.975))
-exp(aa_p_med)/(1+exp(aa_p_med)) #median
-exp(aa_p_ci[1])/(1+exp(aa_p_ci[1])) #lower
-exp(aa_p_ci[2])/(1+exp(aa_p_ci[2])) #upper
+# aa_phi_med<-median(aa_final_fit$sims.list$phi.group)
+# aa_phi_ci<-quantile(aa_final_fit$sims.list$phi.group,probs = c(0.025,0.975))
+# exp(aa_phi_med)/(1+exp(aa_phi_med)) #median
+# exp(aa_phi_ci[1])/(1+exp(aa_phi_ci[1])) #lower
+# exp(aa_phi_ci[2])/(1+exp(aa_phi_ci[2])) #upper
+# 
+# #median p across all groups
+# aa_p_med<-median(aa_final_fit$sims.list$p.group)
+# aa_p_ci<-quantile(aa_final_fit$sims.list$p.group,probs = c(0.025,0.975))
+# exp(aa_p_med)/(1+exp(aa_p_med)) #median
+# exp(aa_p_ci[1])/(1+exp(aa_p_ci[1])) #lower
+# exp(aa_p_ci[2])/(1+exp(aa_p_ci[2])) #upper
 
 #Calculate phi distributions (need to track phi and p first)
 phi.list<-as.data.frame(aa_final_fit$mean$phi)
@@ -565,51 +574,161 @@ phi.ci.high<-mean(phi.hv, na.rm = TRUE)#0.97
 #changed how group membership works- matches data so we don't have re-order everything. 
 g1.phi<-as.matrix(subset(phi.list[aa.data$group==1,]))
 g2.phi<-as.matrix(subset(phi.list[aa.data$group==2,]))
-g3.phi<-as.matrix(subset(phi.list[aa.data$group==3,]))
-g4.phi<-as.matrix(subset(phi.list[aa.data$group==4,]))
+#g3.phi<-as.matrix(subset(phi.list[aa.data$group==3,]))
+#g4.phi<-as.matrix(subset(phi.list[aa.data$group==4,]))
 g1.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==1,]))
 g2.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==2,]))
-g3.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==3,]))
-g4.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==4,]))
+#g3.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==3,]))
+#g4.phi.dat<-as.data.frame(subset(phi.list[aa.data$group==4,]))
 g1.phil<-as.data.frame(subset(phi.l[aa.data$group==1,])) #Spp.-specific lower CI
 g2.phil<-as.data.frame(subset(phi.l[aa.data$group==2,]))
-g3.phil<-as.data.frame(subset(phi.l[aa.data$group==3,]))
-g4.phil<-as.data.frame(subset(phi.l[aa.data$group==4,]))
+#g3.phil<-as.data.frame(subset(phi.l[aa.data$group==3,]))
+#g4.phil<-as.data.frame(subset(phi.l[aa.data$group==4,]))
 g1.phih<-as.data.frame(subset(phi.h[aa.data$group==1,])) #spp.-specific upper CI
 g2.phih<-as.data.frame(subset(phi.h[aa.data$group==2,]))
-g3.phih<-as.data.frame(subset(phi.h[aa.data$group==3,]))
-g4.phih<-as.data.frame(subset(phi.h[aa.data$group==4,]))
+#g3.phih<-as.data.frame(subset(phi.h[aa.data$group==3,]))
+#g4.phih<-as.data.frame(subset(phi.h[aa.data$group==4,]))
 phi.g1 <- g1.phi.dat %>% summarise_all(mean)
 phi.g2 <- g2.phi.dat %>% summarise_all(mean)
-phi.g3 <- g3.phi.dat %>% summarise_all(mean)
-phi.g4 <- g4.phi.dat %>% summarise_all(mean)
+#phi.g3 <- g3.phi.dat %>% summarise_all(mean)
+#phi.g4 <- g4.phi.dat %>% summarise_all(mean)
 phi.g1.med <- g1.phi.dat %>% summarise_all(median)
 phi.g2.med <- g2.phi.dat %>% summarise_all(median)
-phi.g3.med <- g3.phi.dat %>% summarise_all(median)
-phi.g4.med <- g4.phi.dat %>% summarise_all(median)
+#phi.g3.med <- g3.phi.dat %>% summarise_all(median)
+#phi.g4.med <- g4.phi.dat %>% summarise_all(median)
 g1.low<-as.numeric(g1.phil %>% summarise_all(mean, na.rm=TRUE))
 g1.high<-as.numeric(g1.phih %>% summarise_all(mean, na.rm=TRUE))
 g2.low<-as.numeric(g2.phil %>% summarise_all(mean, na.rm=TRUE))
 g2.high<-as.numeric(g2.phih %>% summarise_all(mean, na.rm=TRUE))
-g3.low<-as.numeric(g3.phil %>% summarise_all(mean, na.rm=TRUE))
-g3.high<-as.numeric(g3.phih %>% summarise_all(mean, na.rm=TRUE))
-g4.low<-as.numeric(g4.phil %>% summarise_all(mean, na.rm=TRUE))
-g4.high<-as.numeric(g4.phih %>% summarise_all(mean, na.rm=TRUE))
+#g3.low<-as.numeric(g3.phil %>% summarise_all(mean, na.rm=TRUE))
+#g3.high<-as.numeric(g3.phih %>% summarise_all(mean, na.rm=TRUE))
+#g4.low<-as.numeric(g4.phil %>% summarise_all(mean, na.rm=TRUE))
+#g4.high<-as.numeric(g4.phih %>% summarise_all(mean, na.rm=TRUE))
 x.g1.phi<-mean(g1.phi)#Overall spp. means
 x.g2.phi<-mean(g2.phi)
-x.g3.phi<-mean(g3.phi)
-x.g4.phi<-mean(g4.phi)
+#x.g3.phi<-mean(g3.phi)
+#x.g4.phi<-mean(g4.phi)
 med.g1.phi<-median(g1.phi)#Overall treatment medians
 med.g2.phi<-median(g2.phi)
-med.g3.phi<-median(g3.phi)
-med.g4.phi<-median(g4.phi)
-means.phi<-c(x.g1.phi, x.g2.phi, x.g3.phi, x.g4.phi)#0.8708020 0.8556910 0.8570171 0.8678066
-meds.phi<-c(med.g1.phi, med.g2.phi, med.g3.phi, med.g4.phi) #0.9541836 0.9441955 0.9469313 0.9532164
+#med.g3.phi<-median(g3.phi)
+#med.g4.phi<-median(g4.phi)
+means.phi<-c(x.g1.phi, x.g2.phi)#, x.g3.phi, x.g4.phi)#0.8708020 0.8556910 0.8570171 0.8678066
+meds.phi<-c(med.g1.phi, med.g2.phi)#, med.g3.phi, med.g4.phi) #0.9541836 0.9441955 0.9469313 0.9532164
 sd.g1.phi<-sd(g1.phi)
 sd.g2.phi<-sd(g2.phi)
-sd.g3.phi<-sd(g3.phi)
-sd.g4.phi<-sd(g4.phi)
-sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.2001507 0.2071274 0.2087593 0.2034356
+#sd.g3.phi<-sd(g3.phi)
+#sd.g4.phi<-sd(g4.phi)
+sd.phi<-c(sd.g1.phi, sd.g2.phi)#, sd.g3.phi, sd.g4.phi)#0.2001507 0.2071274 0.2087593 0.2034356
+
+#Figure of treatment-specific temporal survival
+#pdf("~/GitHub/JuvenileEmigrationPhenology/Fig1.pdf", width = 10, height = 8)
+png("Results/Fig1.png", width = 5, height = 7,res=500,units="in")
+recapdates<-c("8/1/18","9/12/18","11/7/18","3/12/19","5/7/19")
+par(mar=c(3.5,4.5,1,2.5), mgp=c(2.5,1,0), oma=c(0,0,0,2), mfrow=c(2,1))
+plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",bty='l',las=T,xaxt="n",
+     ylim=c(0,1), ylab=expression("Survival probability ("~italic(phi)~")"), xlab="",xaxt="n")
+axis(1,at = c(1,4,8,12,16),labels=F)
+text(labels=recapdates,y=-.1,srt=45,adj=1,x=c(1,4,8,12,16),xpd=T,cex=0.9)
+segments((1:16), g1.low, (1:16), g1.high, col="salmon1")
+points(x=(1:16)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
+segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3")
+#points(x=(1:16)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1)
+#segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue")
+#points(x=(1:16)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4)
+#segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4")
+#mtext(line=2,side=1,at=c(1,4,8,12,16),recapdates,cex.axis=0.75)
+par(new = TRUE)
+plot(x=(1:16), aa_stdtempc[1:16], type="b", lty=5, lwd=2, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
+     ylim=c(-3,3), pch=2)
+segments((1:16), aa_stdtempc[1:16]-aa_stdtempsd[1:16], (1:16), aa_stdtempc[1:16]+aa_stdtempsd[1:16], col=1)
+axis(side=4, at = pretty(c(-3.2,3)))
+mtext(expression(Scaled~Mean~Air~Temp~(C)), side=4, las=0, line=2)
+mtext("A)", side=3, at=1, las=1, line=0)
+
+#Calculate recapture distributions
+p.list<-as.data.frame(aa_final_fit$mean$p)
+p.l<-as.data.frame(aa_final_fit$q2.5$p)
+p.h<-as.data.frame(aa_final_fit$q97.5$p)
+p.listv<-as.matrix(aa_final_fit$mean$p)
+p.lv<-as.matrix(aa_final_fit$q2.5$p)
+p.hv<-as.matrix(aa_final_fit$q97.5$p)
+p.mean <- p.list %>% summarise_all(mean, na.rm=TRUE) 
+p.med <- p.list %>% summarise_all(median, na.rm=TRUE) 
+p.lower <- as.numeric(p.l %>% summarise_all(mean, na.rm=TRUE))
+p.higher <- as.numeric(p.h %>% summarise_all(mean, na.rm=TRUE))
+mean(p.listv, na.rm = TRUE) #mean survival = 0.25
+median(p.listv, na.rm = TRUE) #median survival= 0.27
+sd(p.listv, na.rm = TRUE)#0.09
+p.ci.low<-mean(p.lv, na.rm = TRUE)#0.07
+p.ci.high<-mean(p.hv, na.rm = TRUE)#0.53
+
+g1.p<-as.matrix(subset(p.list[aa.data$group==1,]))
+g2.p<-as.matrix(subset(p.list[aa.data$group==2,]))
+#g3.p<-as.matrix(subset(p.list[aa.data$group==3,]))
+#g4.p<-as.matrix(subset(p.list[aa.data$group==4,]))
+g1.p.dat<-as.data.frame(subset(p.list[aa.data$group==1,]))
+g2.p.dat<-as.data.frame(subset(p.list[aa.data$group==2,]))
+#g3.p.dat<-as.data.frame(subset(p.list[aa.data$group==3,]))
+#g4.p.dat<-as.data.frame(subset(p.list[aa.data$group==4,]))
+g1.pl<-as.data.frame(subset(p.l[aa.data$group==1,])) #Spp.-specific lower CI
+g2.pl<-as.data.frame(subset(p.l[aa.data$group==2,]))
+#g3.pl<-as.data.frame(subset(p.l[aa.data$group==3,]))
+#g4.pl<-as.data.frame(subset(p.l[aa.data$group==4,]))
+g1.ph<-as.data.frame(subset(p.h[aa.data$group==1,])) #spp.-specific upper CI
+g2.ph<-as.data.frame(subset(p.h[aa.data$group==2,]))
+#g3.ph<-as.data.frame(subset(p.h[aa.data$group==3,]))
+#g4.ph<-as.data.frame(subset(p.h[aa.data$group==4,]))
+p.g1 <- g1.p.dat %>% summarise_all(mean)
+p.g2 <- g2.p.dat %>% summarise_all(mean)
+#p.g3 <- g3.p.dat %>% summarise_all(mean)
+#p.g4 <- g4.p.dat %>% summarise_all(mean)
+p.g1.med <- g1.p.dat %>% summarise_all(median)
+p.g2.med <- g2.p.dat %>% summarise_all(median)
+#p.g3.med <- g3.p.dat %>% summarise_all(median)
+#p.g4.med <- g4.p.dat %>% summarise_all(median)
+g1.low<-as.numeric(g1.pl %>% summarise_all(mean, na.rm=TRUE))
+g1.high<-as.numeric(g1.ph %>% summarise_all(mean, na.rm=TRUE))
+g2.low<-as.numeric(g2.pl %>% summarise_all(mean, na.rm=TRUE))
+g2.high<-as.numeric(g2.ph %>% summarise_all(mean, na.rm=TRUE))
+#g3.low<-as.numeric(g3.pl %>% summarise_all(mean, na.rm=TRUE))
+#g3.high<-as.numeric(g3.ph %>% summarise_all(mean, na.rm=TRUE))
+#g4.low<-as.numeric(g4.pl %>% summarise_all(mean, na.rm=TRUE))
+#g4.high<-as.numeric(g4.ph %>% summarise_all(mean, na.rm=TRUE))
+x.g1.p<-mean(g1.p)#Overall spp. means
+x.g2.p<-mean(g2.p)
+#x.g3.p<-mean(g3.p)
+#x.g4.p<-mean(g4.p)
+med.g1.p<-median(g1.p)#Overall treatment medians
+med.g2.p<-median(g2.p)
+#med.g3.p<-median(g3.p)
+#med.g4.p<-median(g4.p)
+means.p<-c(x.g1.p, x.g2.p)#, x.g3.p, x.g4.p)#0.2829697 0.2859278 0.2968621 0.3280439
+meds.p<-c(med.g1.p, med.g2.p)#, med.g3.p, med.g4.p) #0.2510888 0.2510146 0.2787384 0.2855799
+sd.g1.p<-sd(g1.p)
+sd.g2.p<-sd(g2.p)
+#sd.g3.p<-sd(g3.p)
+#sd.g4.p<-sd(g4.p)
+sd.p<-c(sd.g1.p, sd.g2.p)#, sd.g3.p, sd.g4.p)#0.07919079 0.09192346 0.08523798 0.10025805
+
+#Add panel of treatment-specific temporal recapture
+plot(x=(1:16),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, bty='l',las=1,
+     ylim=c(0,1), ylab=expression("Recapture Probability ("~italic(rho)~")"), xlab="Recapture Date",xaxt="n")
+axis(1,at = c(1,4,8,12,16),labels=F)
+text(labels=recapdates,y=-.1,srt=45,adj=1,x=c(1,4,8,12,16),xpd=T,cex=0.9)
+segments((1:16), g1.low, (1:16), g1.high, col="salmon1")
+points(x=(1:16)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
+segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3")
+#points(x=(1:16)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1)
+#segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue")
+#points(x=(1:16)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4)
+#segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4")
+mtext("B)", side=3, at=1, las=0, line=1)
+legend(x = 4, y=1, bty = 'n',
+       legend=c("J1", "J3"),
+       pch=c(1,6,0,5), lty=c(3,2), col=c("salmon1", "deepskyblue3"))
+       #legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
+       #pch=c(1,6,0,5), lty=c(3,2,1,4), col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"),ncol=2)
+dev.off()
 
 #Group effect on survival
 plot(density(aa_final_fit$sims.list$phi.group[,1]), xlim=c(-3,8))#L3J3
@@ -638,124 +757,32 @@ phiL3J1.L3J3_f<-round(sum(ifelse((aa_final_fit$sims.list$phi.group[,3]-aa_final_
     length(aa_final_fit$sims.list$phi.group[,1]),2)
 
 #If difference of posteriors overlaps zero, no significant difference
+png("Results/FigS2.png",width = 7, height = 9,units="in",res=500)
 par(mfrow=c(3,2),mar=c(3,4,2,1))
 plot(density(aa_final_fit$sims.list$phi.group[,1]-aa_final_fit$sims.list$phi.group[,2]),main="L1J1-L1J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J1.L1J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J1.L1J3_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$phi.group[,1]-aa_final_fit$sims.list$phi.group[,3]),main="L1J1-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J1.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J1.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$phi.group[,1]-aa_final_fit$sims.list$phi.group[,4]),main="L1J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J1.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J1.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$phi.group[,2]-aa_final_fit$sims.list$phi.group[,3]),main="L1J3-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J3.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J3.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$phi.group[,2]-aa_final_fit$sims.list$phi.group[,4]),main="L1J3-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J3.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J3.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$phi.group[,3]-aa_final_fit$sims.list$phi.group[,4]),main="L3J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL3J1.L3J3_f,sep=" "),adj=0)
-
-#Figure of treatment-specific temporal survival
-#pdf("~/GitHub/JuvenileEmigrationPhenology/Fig1.pdf", width = 10, height = 8)
-#png("Results/Fig1_aman.png", width = 5, height = 5,res=500,units="in")
-recapdates<-c("8/1/18","9/12/18","11/7/18","3/12/19","5/7/19")
-par(mai=c(1,1,1,1), mgp=c(3,1,0), oma=c(0,0,0,2), mfrow=c(2,1))
-plot(x=(1:16),y= phi.g1.med, type="b", pch=1, col="salmon1",bty='l',las=T,xaxt="n",
-     ylim=c(0,1), ylab=expression("Survival probability ("~italic(phi)~")"), xlab="Recapture Occasion")
-axis(1,at = c(1,4,8,12,16))
-segments((1:16), g1.low, (1:16), g1.high, col="salmon1")
-points(x=(1:16)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
-segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3")
-points(x=(1:16)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1)
-segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue")
-points(x=(1:16)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4)
-segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4")
-mtext(line=2,side=1,at=c(1,4,8,12,16),recapdates,cex.axis=0.75)
-legend(x = 10, y=.5, bty = 'n',
-       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
-       pch=c(1,6,0,5), lty=c(3,2,1,4), col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"))
-par(new = TRUE)
-plot(x=(1:16), aa_stdtempc[1:16], type="b", lty=5, lwd=2, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
-     ylim=c(-3,3), pch=2)
-segments((1:16), aa_stdtempc[1:16]-aa_stdtempsd[1:16], (1:16), aa_stdtempc[1:16]+aa_stdtempsd[1:16], col=1)
-axis(side=4, at = pretty(c(-3.2,3)))
-mtext(expression(Standardized ~ mean ~ air ~ temperature  ~ degree ~ C), side=4, las=0, line=2)
-mtext("a", side=3, at=1, las=1, line=1)
-
+mtext(line=-2,side=3,text = paste("f =",phiL3J1.L3J3_f,sep=" "),adj=0.9)
 dev.off()
-
-#Calculate recapture distributions
-p.list<-as.data.frame(aa_final_fit$mean$p)
-p.l<-as.data.frame(aa_final_fit$q2.5$p)
-p.h<-as.data.frame(aa_final_fit$q97.5$p)
-p.listv<-as.matrix(aa_final_fit$mean$p)
-p.lv<-as.matrix(aa_final_fit$q2.5$p)
-p.hv<-as.matrix(aa_final_fit$q97.5$p)
-p.mean <- p.list %>% summarise_all(mean, na.rm=TRUE) 
-p.med <- p.list %>% summarise_all(median, na.rm=TRUE) 
-p.lower <- as.numeric(p.l %>% summarise_all(mean, na.rm=TRUE))
-p.higher <- as.numeric(p.h %>% summarise_all(mean, na.rm=TRUE))
-mean(p.listv, na.rm = TRUE) #mean survival = 0.31
-median(p.listv, na.rm = TRUE) #median survival= 0.27
-sd(p.listv, na.rm = TRUE)#0.09
-p.ci.low<-mean(p.lv, na.rm = TRUE)#0.19
-p.ci.high<-mean(p.hv, na.rm = TRUE)#0.44
-
-g1.p<-as.matrix(subset(p.list[aa.data$group==1,]))
-g2.p<-as.matrix(subset(p.list[aa.data$group==2,]))
-g3.p<-as.matrix(subset(p.list[aa.data$group==3,]))
-g4.p<-as.matrix(subset(p.list[aa.data$group==4,]))
-g1.p.dat<-as.data.frame(subset(p.list[aa.data$group==1,]))
-g2.p.dat<-as.data.frame(subset(p.list[aa.data$group==2,]))
-g3.p.dat<-as.data.frame(subset(p.list[aa.data$group==3,]))
-g4.p.dat<-as.data.frame(subset(p.list[aa.data$group==4,]))
-g1.pl<-as.data.frame(subset(p.l[aa.data$group==1,])) #Spp.-specific lower CI
-g2.pl<-as.data.frame(subset(p.l[aa.data$group==2,]))
-g3.pl<-as.data.frame(subset(p.l[aa.data$group==3,]))
-g4.pl<-as.data.frame(subset(p.l[aa.data$group==4,]))
-g1.ph<-as.data.frame(subset(p.h[aa.data$group==1,])) #spp.-specific upper CI
-g2.ph<-as.data.frame(subset(p.h[aa.data$group==2,]))
-g3.ph<-as.data.frame(subset(p.h[aa.data$group==3,]))
-g4.ph<-as.data.frame(subset(p.h[aa.data$group==4,]))
-p.g1 <- g1.p.dat %>% summarise_all(mean)
-p.g2 <- g2.p.dat %>% summarise_all(mean)
-p.g3 <- g3.p.dat %>% summarise_all(mean)
-p.g4 <- g4.p.dat %>% summarise_all(mean)
-p.g1.med <- g1.p.dat %>% summarise_all(median)
-p.g2.med <- g2.p.dat %>% summarise_all(median)
-p.g3.med <- g3.p.dat %>% summarise_all(median)
-p.g4.med <- g4.p.dat %>% summarise_all(median)
-g1.low<-as.numeric(g1.pl %>% summarise_all(mean, na.rm=TRUE))
-g1.high<-as.numeric(g1.ph %>% summarise_all(mean, na.rm=TRUE))
-g2.low<-as.numeric(g2.pl %>% summarise_all(mean, na.rm=TRUE))
-g2.high<-as.numeric(g2.ph %>% summarise_all(mean, na.rm=TRUE))
-g3.low<-as.numeric(g3.pl %>% summarise_all(mean, na.rm=TRUE))
-g3.high<-as.numeric(g3.ph %>% summarise_all(mean, na.rm=TRUE))
-g4.low<-as.numeric(g4.pl %>% summarise_all(mean, na.rm=TRUE))
-g4.high<-as.numeric(g4.ph %>% summarise_all(mean, na.rm=TRUE))
-x.g1.p<-mean(g1.p)#Overall spp. means
-x.g2.p<-mean(g2.p)
-x.g3.p<-mean(g3.p)
-x.g4.p<-mean(g4.p)
-med.g1.p<-median(g1.p)#Overall treatment medians
-med.g2.p<-median(g2.p)
-med.g3.p<-median(g3.p)
-med.g4.p<-median(g4.p)
-means.p<-c(x.g1.p, x.g2.p, x.g3.p, x.g4.p)#0.2829697 0.2859278 0.2968621 0.3280439
-meds.p<-c(med.g1.p, med.g2.p, med.g3.p, med.g4.p) #0.2510888 0.2510146 0.2787384 0.2855799
-sd.g1.p<-sd(g1.p)
-sd.g2.p<-sd(g2.p)
-sd.g3.p<-sd(g3.p)
-sd.g4.p<-sd(g4.p)
-sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.07919079 0.09192346 0.08523798 0.10025805
 
 #Group effect on recapture
 plot(density(aa_final_fit$sims.list$p.group[,1]), xlim=c(-5,5),main="")#L1J1
@@ -789,45 +816,32 @@ pL3J1.L3J3_f<-round(sum(ifelse((aa_final_fit$sims.list$p.group[,3]-aa_final_fit$
                 length(aa_final_fit$sims.list$p.group[,1]),2) 
 
 #If difference of posteriors for recapture overlaps zero, no significant difference
+png("Results/FigS3.png",width = 7, height = 9,units="in",res=500)
 par(mfrow=c(3,2),mar=c(3,4,2,1))
 plot(density(aa_final_fit$sims.list$p.group[,1]-aa_final_fit$sims.list$p.group[,2]),main="L1J1-L1J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J1.L1J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J1.L1J3_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$p.group[,1]-aa_final_fit$sims.list$p.group[,3]),main="L1J1-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J1.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J1.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$p.group[,1]-aa_final_fit$sims.list$p.group[,4]),main="L1J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J1.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J1.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$p.group[,2]-aa_final_fit$sims.list$p.group[,3]),main="L1J3-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J3.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J3.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$p.group[,2]-aa_final_fit$sims.list$p.group[,4]),main="L1J3-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J3.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J3.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(aa_final_fit$sims.list$p.group[,3]-aa_final_fit$sims.list$p.group[,4]),main="L3J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL3J1.L3J3_f,sep=" "),adj=0)
-
-#Add panel of treatment-specific temporal recapture
-plot(x=(1:16),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, bty='l',las=1,
-     ylim=c(0,1), ylab=expression("Recapture probability ("~italic(rho)~")"), xlab="Recapture occasion")
-segments((1:16), g1.low, (1:16), g1.high, col="salmon1")
-points(x=(1:16)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
-segments((1:16)+.1, g2.low, (1:16)+.1, g2.high, col="deepskyblue3")
-points(x=(1:16)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1)
-segments((1:16)+.2, g3.low, (1:16)+.2, g3.high, col="midnightblue")
-points(x=(1:16)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4)
-segments((1:16)+.3, g4.low, (1:16)+.3, g4.high, col="orangered4")
-mtext("b", side=3, at=1, las=0, line=1)
-
+mtext(line=-2,side=3,text = paste("f =",pL3J1.L3J3_f,sep=" "),adj=0.9)
 dev.off()
-
 
 sink("amop_final.jags")
 cat("
@@ -851,13 +865,13 @@ cat("
       beta.m[u] ~ dunif(0, 1)        # Priors for previous recapture effect
     }
     
-    p.group[1] ~ dnorm(0, 0.01)I(-5,5)                   
-    p.group[2] ~ dnorm(0, 0.01)I(-5,5)      # Priors for difference in treatment-spec. recapture compared to treatment 1
-    p.group[3] ~ dnorm(0, 0.01)I(-5,5)
-    p.group[4] ~ dnorm(0, 0.01)I(-5,5)
-    # for(i in 1:g){
-    #   p.group[i]~dunif(0,1)
-    # }
+    # p.group[1] ~ dnorm(0, 0.01)I(-5,5)                   
+    # p.group[2] ~ dnorm(0, 0.01)I(-5,5)      # Priors for difference in treatment-spec. recapture compared to treatment 1
+    # p.group[3] ~ dnorm(0, 0.01)I(-5,5)
+    # p.group[4] ~ dnorm(0, 0.01)I(-5,5)
+    for(i in 1:g){
+      p.group[i]~dnorm(0, 0.01)I(-5,5)
+    }
     
     for (b in 1:nblock){
         #for (t in 1:(n.occasions-1)){
@@ -890,10 +904,13 @@ cat("
     #mean.phi~dnorm(0,0.001)
     #mu.phi<-1/(1+exp(-mean.phi))             # Logit transformed survival grand mean/intercept
     
-    phi.group[1] ~ dnorm(0, 0.01)I(-10,10)
-    phi.group[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. survival compared to treatment 1
-    phi.group[3] ~ dnorm(0, 0.01)I(-10,10)
-    phi.group[4] ~ dnorm(0, 0.01)I(-10,10)
+    # phi.group[1] ~ dnorm(0, 0.01)I(-10,10)
+    # phi.group[2] ~ dnorm(0, 0.01)I(-10,10)      # Priors for difference in treatment-spec. survival compared to treatment 1
+    # phi.group[3] ~ dnorm(0, 0.01)I(-10,10)
+    # phi.group[4] ~ dnorm(0, 0.01)I(-10,10)
+    for(i in 1:g){
+      phi.group[i]~dnorm(0, 0.01)I(-10,10)
+    }
     
     phi.temp ~ dnorm(0, 1)I(-10, 10)     # Prior for temp slope parameter
 
@@ -945,8 +962,8 @@ parameters.ao <- c("phi.group","p.group","phi.temp","p.temp","beta.m",
                    "phi.bl","p.bl","phi","p") 
 
 ao.inits <- function(){list(z = cjs.init.z(ao_CH,f_ao), 
-                            phi.group = rnorm(4), 
-                            p.group = rnorm(4), 
+                            phi.group = rnorm(2), 
+                            p.group = rnorm(2), 
                             #p.group = runif(4,0,1), 
                             phi.bl = runif(length(unique(block_ao)), 0, 1), 
                             #p.bl = array(runif(64, 0, 1),dim=c(4,16)), 
@@ -972,11 +989,11 @@ ao_final_fit <- jags(ao.data, parallel=TRUE,
                      parameters.ao, 
                      "amop_final.jags", 
                      n.chains = nc, 
-                     n.thin = nt, 
-                     n.iter = ni, 
-                     n.adapt = nb)
+                     n.thin = 25, 
+                     n.iter = 150000, 
+                     n.adapt = 100000)
 
-saveRDS(ao_final_fit,"Results/ao_final_fit.rds")
+saveRDS(ao_final_fit,"Results/ao_finalmod_2g.rds")
 ao_final_fit<-readRDS("Results/ao_final_fit.rds")
 print(ao_final_fit)
 plot(ao_final_fit)
@@ -1062,12 +1079,15 @@ sd.phi<-c(sd.g1.phi, sd.g2.phi, sd.g3.phi, sd.g4.phi)#0.10384241 0.07389021 0.09
 
 
 #Panel of treatment-specific temporal survival
-pdf("~/GitHub/JuvenileEmigrationPhenology/Fig2.pdf", width = 15, height = 20)
-recapdates1<-c("")
+#pdf("~/GitHub/JuvenileEmigrationPhenology/Fig2.pdf", width = 15, height = 20)
+png("Results/Fig2.png", width = 5, height = 7,units="in",res=500)
+recapdates1<-c("7/6/19","8/21/19","10/2/19","11/9/19","1/14/20","3/3/20","5/4/20")
 #par(mai=c(2,2,1,2), mgp=c(5,2,0), oma=c(0,0,0,2), mfrow=c(2,1))
-par(mai=c(1,1,1,1), mgp=c(3,1,0), oma=c(0,0,0,2), mfrow=c(2,1))
+par(mar=c(3.5,4,1,2.5), mgp=c(2.5,1,0), oma=c(0,0,0,2), mfrow=c(2,1))
 plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, bty='l',
-     ylim=c(0,1), ylab=expression("Survival probability ("~italic(phi)~")"), xlab="",las=1)
+     ylim=c(0,1), ylab=expression("Survival probability ("~italic(phi)~")"), xlab="",las=1,xaxt="n")
+axis(1,at=seq(2,14,2),labels=F)
+text(labels=recapdates1,y=-.1,srt=45,adj=1,x=seq(2,14,2),xpd=T,cex=0.9)
 segments((1:14), g1.low, (1:14), g1.high, col="salmon1")
 points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
 segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3")
@@ -1075,30 +1095,20 @@ points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1)
 segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue")
 points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4)
 segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4")
-mtext(at=c(2,4,6,8,10,12,14),labels=recapdates1,line=2,side=1)
-# par(mai=c(2,2,1,2), mgp=c(5,2,0), oma=c(0,0,0,2), mfrow=c(2,1))
-# plot(x=(1:14),y= phi.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
-#      ylim=c(0,1), ylab="Survival probability", xlab="", cex.lab=2.5, cex.axis=2.5)
-# segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
-# points(x=(1:14)+.1,phi.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
-# segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
-# points(x=(1:14)+.2,phi.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
-# segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
-# points(x=(1:14)+.3,phi.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
-# segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
+#mtext(at=c(2,4,6,8,10,12,14),text=recapdates1,line=2,side=1)
 
 ##Add temperature data on z-axis
-par(new = TRUE)
-plot(x=(1:14), ao_stdtempc[1:14], type="b", lty=5, lwd=2, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
-     ylim=c(-3,3), pch=2)
-segments((1:14), ao_stdtempc[1:14]-ao_stdtempsd[1:14], (1:14), ao_stdtempc[1:14]+ao_stdtempsd[1:14], col=1)
-axis(side=4, at = pretty(c(-3.2,3)))
-mtext(expression(Standardized ~ mean ~ air ~ temperature  ~ degree ~ C), side=4, las=0, line=2)
-mtext("a", side=3, at=1, las=1, line=1)
-legend(x = .5, y = -.5, bty = 'n', lwd=4,
-       legend=c("L1J1", "L1J3", "L3J1", "L3J3", "Temperature"),
-       lwd=c(2,2,2,2,2), pch=c(1,6,0,5,2), lty=c(3,2,1,4,5), cex=2.5,  
-       col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4", 1))
+# par(new = TRUE)
+# plot(x=(1:14), ao_stdtempc[1:14], type="b", lty=5, lwd=2, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
+#      ylim=c(-3,3), pch=2,xaxt="n")
+# segments((1:14), ao_stdtempc[1:14]-ao_stdtempsd[1:14], (1:14), ao_stdtempc[1:14]+ao_stdtempsd[1:14], col=1)
+# axis(side=4, at = pretty(c(-3.2,3)))
+# mtext(expression(Scaled~Mean~Air~Temp~(C)), side=4, las=0, line=2)
+# mtext("A)", side=3, at=1, las=1, line=0)
+legend(x = 7, y = 0.2, bty = 'n', 
+       legend=c("L1J1", "L1J3", "L3J1", "L3J3"),
+       lwd=c(2,2,2,2,2), pch=c(1,6,0,5,2), lty=c(3,2,1,4,5), cex=1,  
+       col=c("salmon1", "deepskyblue3", "midnightblue", "orangered4"),ncol=2)
 
 #Calculate recapture distributions
 p.list<-as.data.frame(ao_final_fit$mean$p)
@@ -1168,7 +1178,9 @@ sd.p<-c(sd.g1.p, sd.g2.p, sd.g3.p, sd.g4.p)#0.2373022 0.2419632 0.2362928 0.2341
 
 #Add panel of treatment-specific temporal recapture
 plot(x=(1:14),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, bty='l',las=1,
-     ylim=c(0,1), ylab=expression("Recapture probability ("~italic(rho)~")"), xlab="Recapture occasion")
+     ylim=c(0,1), ylab=expression("Recapture probability ("~italic(rho)~")"), xlab="Recapture Date",xaxt="n")
+axis(1,at=seq(2,14,2),labels=F)
+text(labels=recapdates1,y=-.1,srt=45,adj=1,x=seq(2,14,2),xpd=T,cex = 0.9)
 segments((1:14), g1.low, (1:14), g1.high, col="salmon1")
 points(x=(1:14)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2)
 segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3")
@@ -1176,17 +1188,13 @@ points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1)
 segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue")
 points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4)
 segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4")
-mtext("b", side=3, at=1, las=0, line=1)
-# plot(x=(1:14),y= p.g1.med, type="b", pch=1, col="salmon1",lty=3, cex=2.5, lwd=4, bty='l',
-#      ylim=c(0,1), ylab="Recapture probability", xlab="Recapture occasion", cex.lab=2.5, cex.axis=2.5)
-# segments((1:14), g1.low, (1:14), g1.high, col="salmon1", lwd=4)
-# points(x=(1:14)+.1,p.g2.med, type="b", pch=6, col="deepskyblue3", lty=2, cex=2.5, lwd=4)
-# segments((1:14)+.1, g2.low, (1:14)+.1, g2.high, col="deepskyblue3", lwd=4)
-# points(x=(1:14)+.2,p.g3.med, type="b", pch=0, col="midnightblue", lty=1, cex=2.5, lwd=4)
-# segments((1:14)+.2, g3.low, (1:14)+.2, g3.high, col="midnightblue", lwd=4)
-# points(x=(1:14)+.3,p.g4.med, type="b", pch=5, col="orangered4", lty=4, cex=2.5, lwd=4)
-# segments((1:14)+.3, g4.low, (1:14)+.3, g4.high, col="orangered4", lwd=4)
-# mtext("b", side=3, at=1, las=0, line=1, cex=3)
+mtext("B)", side=3, at=1, las=0, line=0)
+# par(new = TRUE)
+# plot(x=(1:14), ao_stdtempc[1:14], type="b", lty=5, lwd=2, col=1, axes = FALSE, bty = "n", xlab = "", ylab = "", 
+#      ylim=c(-3,3), pch=2)
+# segments((1:14), ao_stdtempc[1:14]-ao_stdtempsd[1:14], (1:14), ao_stdtempc[1:14]+ao_stdtempsd[1:14], col=1)
+# axis(side=4, at = pretty(c(-3.2,3)))
+# mtext(expression(Scaled~Mean~Air~Temp~(C)), side=4, las=0, line=2)
 dev.off()
 
 #Group effect on recapture
@@ -1221,30 +1229,32 @@ pL3J1.L3J3_f<-round(sum(ifelse((ao_final_fit$sims.list$p.group[,3]-ao_final_fit$
     length(ao_final_fit$sims.list$p.group[,3]),2)
 
 #If difference of posteriors overlaps zero, no significant difference
+png("Results/FigS5.png",width = 7, height = 9,units="in",res=500)
 par(mfrow=c(3,2),mar=c(3,4,2,1))
 plot(density(ao_final_fit$sims.list$p.group[,1]-ao_final_fit$sims.list$p.group[,2]),main="L1J1-L1J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J1.L1J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J1.L1J3_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$p.group[,1]-ao_final_fit$sims.list$p.group[,3]),main="L1J1-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J1.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J1.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$p.group[,1]-ao_final_fit$sims.list$p.group[,4]),main="L1J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J1.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J1.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$p.group[,2]-ao_final_fit$sims.list$p.group[,3]),main="L1J3-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J3.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J3.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$p.group[,2]-ao_final_fit$sims.list$p.group[,4]),main="L1J3-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL1J3.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL1J3.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$p.group[,3]-ao_final_fit$sims.list$p.group[,4]),main="L3J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",pL3J1.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",pL3J1.L3J3_f,sep=" "),adj=0.9)
+dev.off()
 
 #Calculate % of posterior of differences overlapping zero
 phiL1J1.L1J3_f<-round(sum(ifelse((ao_final_fit$sims.list$phi.group[,1]-ao_final_fit$sims.list$phi.group[,2])<=0,1,0))/
@@ -1259,7 +1269,7 @@ phiL1J1.L3J3_f<-round(sum(ifelse((ao_final_fit$sims.list$phi.group[,1]-ao_final_
                         #sum(ao_final_fit$sims.list$phi.group[,4]-ao_final_fit$sims.list$phi.group[,3])) * 100
                         length(ao_final_fit$sims.list$phi.group[,3]),2)
 
-phiLJ3.L3J1_f<-round(sum(ifelse((ao_final_fit$sims.list$phi.group[,2]-ao_final_fit$sims.list$phi.group[,3])<=0,1,0))/
+phiL1J3.L3J1_f<-round(sum(ifelse((ao_final_fit$sims.list$phi.group[,2]-ao_final_fit$sims.list$phi.group[,3])<=0,1,0))/
                        #sum(ao_final_fit$sims.list$phi.group[,1]-ao_final_fit$sims.list$phi.group[,4])) * 100
                        length(ao_final_fit$sims.list$phi.group[,3]),2)
 
@@ -1278,30 +1288,31 @@ lines(density(ao_final_fit$sims.list$phi.group[,3]), col=3)#L3J1
 lines(density(ao_final_fit$sims.list$phi.group[,4]), col=4)#L3J3
 
 #If difference of posteriors overlaps zero, no significant difference for survival
+png("Results/FigS4.png",width = 7, height = 9,units="in",res=500)
 par(mfrow=c(3,2),mar=c(3,4,2,1))
 plot(density(ao_final_fit$sims.list$phi.group[,1]-ao_final_fit$sims.list$phi.group[,2]),main="L1J1-L1J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J1.L1J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J1.L1J3_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$phi.group[,1]-ao_final_fit$sims.list$phi.group[,3]),main="L1J1-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J1.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J1.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$phi.group[,1]-ao_final_fit$sims.list$phi.group[,4]),main="L1J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J1.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J1.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$phi.group[,2]-ao_final_fit$sims.list$phi.group[,3]),main="L1J3-L3J1",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J3.L3J1_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J3.L3J1_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$phi.group[,2]-ao_final_fit$sims.list$phi.group[,4]),main="L1J3-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL1J3.L3J3_f,sep=" "),adj=0)
+mtext(line=-2,side=3,text = paste("f =",phiL1J3.L3J3_f,sep=" "),adj=0.9)
 
 plot(density(ao_final_fit$sims.list$phi.group[,3]-ao_final_fit$sims.list$phi.group[,4]),main="L3J1-L3J3",xlab="")
 abline(v=0,col="red")
-mtext(line=-1,side=3,text = paste("f =",phiL3J1.L3J3_f,sep=" "),adj=0)
-
+mtext(line=-2,side=3,text = paste("f =",phiL3J1.L3J3_f,sep=" "),adj=0.9)
+dev.off()
 
 

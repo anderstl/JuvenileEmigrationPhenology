@@ -72,10 +72,16 @@ recaps<-recaps%>%
   mutate(DOY_adj1=if_else(Recap_Date>"2020-06-06",DOY_adj+365,DOY_adj))
 
 penID<-penID%>%
-  select("PIT_Tag","Species","Juv.Pen","Juv.Treat","Meta.Mass.g", "Rel.Cohort")%>%
+  mutate(Days.Held=yday(penID$Release.Date)-yday(penID$Meta.Date))%>%
+  select("PIT_Tag","Species","Juv.Pen","Juv.Treat","Meta.Mass.g", "Tag.Mass","Rel.Cohort","Days.Held")%>%
   mutate(Rel.Block = sapply(strsplit(Juv.Pen, ","), function(x) x[1]),
          Rel.Pen = sapply(strsplit(Juv.Pen, ","), function(x) x[2]))%>%
   mutate(across(where(is.character), as.factor))
+
+penID$Treatment2<-ifelse(penID$Juv.Treat=="L1-J1", "J1", penID$Juv.Treat) #Create juvenile-only treatment factor
+penID$Treatment2<-ifelse(penID$Juv.Treat=="L3-J1", "J1", penID$Treatment2)
+penID$Treatment2<-ifelse(penID$Juv.Treat=="L3-J3", "J3", penID$Treatment2)
+penID$Treatment2<-ifelse(penID$Juv.Treat=="L1-J3", "J3", penID$Treatment2)
   
 df <- merge(recaps, penID, by=c("PIT_Tag"),all.x=T)
 # df<-df%>%
@@ -87,11 +93,26 @@ ao_df<- df%>%
 
 #metamorph sizes used in terrestrial pens
 ao_mass<-penID%>%filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))%>%
-  #group_by(Juv.Treat)%>%
+  group_by(Juv.Treat)%>%
   summarise(meanMass=mean(Meta.Mass.g,na.rm=T),
             sdMass=sd(Meta.Mass.g,na.rm=T),
             minMass=min(Meta.Mass.g),
             maxMass=max(Meta.Mass.g))
+ao.mass.pl<-penID%>%
+  filter(as.factor(Treatment2)%in%c("J1","J3"))%>%
+  ggplot(aes(Treatment2,Meta.Mass.g))+
+  geom_boxplot()+
+  geom_jitter(color="gray",width = 0.2,shape=1)+
+  theme_classic()+
+  labs(y="Metamorph Mass (g)",x="Phenology Treatment")
+
+ao.daysheld.pl<-penID%>%
+  filter(as.factor(Treatment2)%in%c("J1","J3"))%>%
+  ggplot(aes(Treatment2,Days.Held))+
+  geom_boxplot()+
+  geom_jitter(color="gray",width = 0.2,shape=1)+
+  theme_classic()+
+  labs(y="Days Held",x="Phenology Treatment")
 
 #Build capture history matrix
 # ao_ch.pa <- matrix(0, nrow=dim(ao_penID)[1], ncol=max(as.numeric(ao_recaps$Period), na.rm=T))
@@ -136,7 +157,7 @@ ao_ch.pa<-ag.recaps%>%
 
 #recombine with originally released animals
 ao_penID<-filter(penID,as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))
-ao_wide<-merge(ao_penID[,c("PIT_Tag", "Juv.Treat", "Rel.Block", "Rel.Pen","Meta.Mass.g", "Rel.Cohort")],ao_ch.pa,all=T)
+ao_wide<-merge(ao_penID[,c("PIT_Tag", "Juv.Treat", "Rel.Block", "Rel.Pen","Meta.Mass.g", "Rel.Cohort","Days.Held")],ao_ch.pa,all=T)
 
 ao_wide<-ao_wide%>%
   mutate(R1=replace_na(R1,1))%>%
@@ -249,6 +270,75 @@ for(i in 1:(nrow(interval_ao)-1)){
 }
 interval_ao$days[1]<-14
 interval_ao$int<-interval_ao$days/mean(interval_ao$days,na.rm=T)
+
+#############################################################
+## Format data to add predictors
+#############################################################
+#define groups, blocks and pens
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J1", "J1", ao_wide$Juv.Treat) #Create juvenile-only treatment factor
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J1", "J1", ao_wide$Treatment2)
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J3", "J3", ao_wide$Treatment2)
+ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J3", "J3", ao_wide$Treatment2)
+
+group_ao<-as.numeric(ao_wide$Juv.Treat)
+group2_ao<-as.numeric(as.factor(ao_wide$Treatment2))
+block_ao<-as.numeric(ao_wide$Rel.Block)
+pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
+rel_ao<-as.numeric(ao_wide$Rel.Cohort)
+
+#define abiotic covariates
+#ao_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
+ao_abiotic <- readRDS("~/GitRepos/JuvenileEmigrationPhenology/ao_abiotic.rds")
+#ao_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
+str(ao_abiotic)
+cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
+
+ao_abiotic$Tmin <- as.numeric(ao_abiotic$Tmin)
+ao_stdtempc<-rep(NA,length(ao_abiotic$Tmin))
+ao_abiotic$Prcp <- as.numeric(ao_abiotic$Prcp)
+ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
+ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
+#ao_stdpropMax<-rep(NA,length(ao_abiotic$propMax))
+#ao_reachMax<-as.numeric(factor(c(1, 1, 1, rep(0,13)))) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
+#ao_abiotic$temp.sd <- as.numeric(ao_abiotic$temp.sd)
+#ao_stdtempsd<-rep(NA,length(ao_abiotic$temp.sd))
+hist(ao_abiotic$Tmin)
+shapiro.test(ao_abiotic$Tmin)
+
+hist(ao_abiotic$Prcp)
+shapiro.test(ao_abiotic$Prcp)
+hist(log(ao_abiotic$Prcp+1))
+shapiro.test(log(ao_abiotic$Prcp+1))
+
+ao_abiotic$log.Prcp<-log(ao_abiotic$Prcp+1)
+
+#Scale temp. and Prcp. covariates
+for (i in 1:length(ao_abiotic$Tmin)) {
+  ao_stdtempc[i] <- (ao_abiotic$Tmin[i]-mean(ao_abiotic$Tmin[]))/sd(ao_abiotic$Tmin[])
+  ao_stdtempsd[i] <- (ao_abiotic$temp.sd[i]-mean(ao_abiotic$temp.sd[]))/sd(ao_abiotic$temp.sd[])
+  ao_stdprecip[i] <- (ao_abiotic$log.Prcp[i]-mean(ao_abiotic$log.Prcp[]))/sd(ao_abiotic$log.Prcp[])
+  #ao_stdpropMax[i] <- (ao_abiotic$propMax[i]-mean(ao_abiotic$propMax[]))/sd(ao_abiotic$propMax[])
+}
+
+#define body mass covariate
+#amb$mass <- as.numeric(ao_$mass)
+ao_wide$Meta.Mass.g[is.na(ao_wide$Meta.Mass.g)]<-mean(ao_wide$Meta.Mass.g,na.rm=T)
+stdmass_ao<-rep(NA,length(ao_wide$Meta.Mass.g))
+
+#Scale mass covariate
+for (i in 1:length(ao_wide$Meta.Mass.g)) {
+  stdmass_ao[i] <- (ao_wide$Meta.Mass.g[i]-mean(ao_wide$Meta.Mass.g[]))/sd(ao_wide$Meta.Mass.g[])
+}
+
+#define days held covariate
+ao_wide$Days.Held[is.na(ao_wide$Days.Held)]<-mean(ao_wide$Days.Held,na.rm=T)
+stddaysheld_ao<-rep(NA,length(ao_wide$Days.Held))
+
+#Scale days held covariate
+for (i in 1:length(ao_wide$Days.Held)) {
+  stddaysheld_ao[i] <- (ao_wide$Days.Held[i]-mean(ao_wide$Days.Held[]))/sd(ao_wide$Days.Held[])
+}
+
 
 ### Basic models
 #############################################################
@@ -525,64 +615,6 @@ amb.cjs.c.t <- jags(ao_jags.data, parallel=TRUE, inits, parameters, "amb-cjs-c-t
 
 print(amb.cjs.c.t)#DIC = 1462.38
 
-#############################################################
-## Format data to add predictors
-#############################################################
-#define groups, blocks and pens
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J1", "J1", ao_wide$Juv.Treat) #Create juvenile-only treatment factor
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J1", "J1", ao_wide$Treatment2)
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J3", "J3", ao_wide$Treatment2)
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J3", "J3", ao_wide$Treatment2)
-
-group_ao<-as.numeric(ao_wide$Juv.Treat)
-group2_ao<-as.numeric(as.factor(ao_wide$Treatment2))
-block_ao<-as.numeric(ao_wide$Rel.Block)
-pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
-rel_ao<-as.numeric(ao_wide$Rel.Cohort)
-
-#define abiotic covariates
-#ao_abiotic <- readRDS("~/GitHub/JuvenileEmigrationPhenology/ao_abiotic.rds")
-ao_abiotic <- readRDS("~/GitRepos/JuvenileEmigrationPhenology/ao_abiotic.rds")
-#ao_abiotic$propMax <- c(0.14, 0.27, 0.33, rep(0,13)) #add row of proportion of previous interval days with max temp. above 35C
-str(ao_abiotic)
-cor.test(as.numeric(ao_abiotic$Tmin), as.numeric(ao_abiotic$Prcp)) #Not autocorrelated
-
-ao_abiotic$Tmin <- as.numeric(ao_abiotic$Tmin)
-ao_stdtempc<-rep(NA,length(ao_abiotic$Tmin))
-ao_abiotic$Prcp <- as.numeric(ao_abiotic$Prcp)
-ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
-ao_stdprecip<-rep(NA,length(ao_abiotic$Prcp))
-#ao_stdpropMax<-rep(NA,length(ao_abiotic$propMax))
-#ao_reachMax<-as.numeric(factor(c(1, 1, 1, rep(0,13)))) #factor indicating whether CTmax (max temp. above 35C) reached in previous interval days
-#ao_abiotic$temp.sd <- as.numeric(ao_abiotic$temp.sd)
-#ao_stdtempsd<-rep(NA,length(ao_abiotic$temp.sd))
-hist(ao_abiotic$Tmin)
-shapiro.test(ao_abiotic$Tmin)
-
-hist(ao_abiotic$Prcp)
-shapiro.test(ao_abiotic$Prcp)
-hist(log(ao_abiotic$Prcp+1))
-shapiro.test(log(ao_abiotic$Prcp+1))
-
-ao_abiotic$log.Prcp<-log(ao_abiotic$Prcp+1)
-
-#Scale temp. and Prcp. covariates
-for (i in 1:length(ao_abiotic$Tmin)) {
-  ao_stdtempc[i] <- (ao_abiotic$Tmin[i]-mean(ao_abiotic$Tmin[]))/sd(ao_abiotic$Tmin[])
-  ao_stdtempsd[i] <- (ao_abiotic$temp.sd[i]-mean(ao_abiotic$temp.sd[]))/sd(ao_abiotic$temp.sd[])
-  ao_stdprecip[i] <- (ao_abiotic$log.Prcp[i]-mean(ao_abiotic$log.Prcp[]))/sd(ao_abiotic$log.Prcp[])
-  #ao_stdpropMax[i] <- (ao_abiotic$propMax[i]-mean(ao_abiotic$propMax[]))/sd(ao_abiotic$propMax[])
-}
-
-#define body mass covariate
-#amb$mass <- as.numeric(ao_$mass)
-ao_wide$Meta.Mass.g[is.na(ao_wide$Meta.Mass.g)]<-mean(ao_wide$Meta.Mass.g,na.rm=T)
-stdmass_ao<-rep(NA,length(ao_wide$Meta.Mass.g))
-
-#Scale mass covariate
-for (i in 1:length(ao_wide$Meta.Mass.g)) {
-  stdmass_ao[i] <- (ao_wide$Meta.Mass.g[i]-mean(ao_wide$Meta.Mass.g[]))/sd(ao_wide$Meta.Mass.g[])
-}
 
 #############################################################
 # 5. Phi(.+g)P(.): Model with constant parameters (from Kery & Schaub 7.3)
