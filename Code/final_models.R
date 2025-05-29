@@ -1,3 +1,13 @@
+#questions: 
+#include known state? 
+#how to include size/mass/growth? 
+#keep block/pen effects? 
+#model convergence
+#predictors on both phi and p (e.g. treatment effects)
+#model fit? 
+#re-do in NIMBLE?
+#time-varying vs not
+
 #Structure: time-varying phi and p (with time treated as random effect), with block and pen effects
 
 #Steps to limit model complexity
@@ -5,8 +15,10 @@
 #2: test for mass, precip and temp effects on phi; keep only if significant
 #3: add in treatment effects on both phi and p. 
 
-#questions: include known state? 
-# Bundle aman data
+#run data generating code
+source('Code/CJS_data_generation.R')
+
+# Bundle A. annulatum data
 aa.data <- list(y = aa_CH, int=interval_aa$int, 
                 f = f_aa, nind = dim(aa_CH)[1], 
                 n.occasions = dim(aa_CH)[2], 
@@ -22,7 +34,7 @@ aa.data <- list(y = aa_CH, int=interval_aa$int,
                 group=group2_aa, 
                 m=m_aa)
 
-# Bundle amop data
+# Bundle A. opacum data
 ao.data <- list(y = ao_CH, int=interval_ao$int, 
                 f = f_ao, nind = dim(ao_CH)[1], 
                 n.occasions = dim(ao_CH)[2], 
@@ -142,20 +154,13 @@ cat("
 ",fill = TRUE)
 sink()
 
-# Initial values (probably need to adjust thse to match dimensions of certain parameters)
-  aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
-                            #phi.group = rnorm(4), 
-                            #p.group = rnorm(4), 
+# Initial values for A. annulatum 
+aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
                             phi.bl = runif(length(unique(block_aa)), 0, 1), 
-                            #p.bl = array(runif(64, 0, 1),dim=c(4,16)), 
                             p.bl = runif(length(unique(block_aa)), 0, 1), 
-                            #phi.mass = runif(1, -5, 5),
-                            #phi.temp = runif(1, -5,5),
                             p.temp = runif(1, -5,5),
-                            #phi.pcp = runif(1, -5,5),
                             p.pcp = runif(1, -5,5),
                             phi.pen = runif(length(unique(pen_aa)), 0, 1), 
-                            #p.pen = array(runif(length(unique(pen_aa))*16, 0,1),dim=c(24,16)), 
                             p.pen = runif(length(unique(pen_aa)), 0,1), 
                             beta.m = runif (2, 0, 1),
                             sigma.phi = runif(1, 0, 2), 
@@ -165,20 +170,13 @@ sink()
                             sigma.p.pen= runif(1, 0, 2), 
                             sigma.phi.pen= runif(1, 0, 2))}
 
-  ao.inits <- function(){list(z = cjs.init.z(ao_CH,f_ao), 
-                              #phi.group = rnorm(4), 
-                              #p.group = rnorm(4), 
+ao.inits <- function(){list(z = cjs.init.z(ao_CH,f_ao), 
                               phi.bl = runif(length(unique(block_ao)), 0, 1), 
-                              #p.bl = array(runif(64, 0, 1),dim=c(4,16)), 
                               p.bl = runif(length(unique(block_ao)), 0, 1), 
-                              #phi.mass = runif(1, -5, 5),
-                              #phi.temp = runif(1, -5,5),
                               p.temp = runif(1, -5,5),
-                              #phi.pcp = runif(1, -5,5),
                               p.pcp = runif(1, -5,5),
                               phi.pen = runif(length(unique(pen_ao)), 0, 1), 
-                              #p.pen = array(runif(length(unique(pen_ao))*16, 0,1),dim=c(24,16)), 
-                                p.pen = runif(length(unique(pen_ao)), 0,1), 
+                              p.pen = runif(length(unique(pen_ao)), 0,1), 
                               beta.m = runif (2, 0, 1),
                               sigma.phi = runif(1, 0, 2), 
                               sigma.p = runif(1, 0, 2), 
@@ -315,19 +313,13 @@ sink()
 
 # Initial values (probably need to adjust thse to match dimensions of certain parameters)
 aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa), 
-                            #phi.group = rnorm(4), 
-                            #p.group = rnorm(4), 
                             phi.bl = runif(length(unique(block_aa)), 0, 1), 
-                            #p.bl = array(runif(64, 0, 1),dim=c(4,16)), 
                             p.bl = runif(length(unique(block_aa)), 0, 1), 
                             phi.mass = runif(1, -5, 5),
                             phi.temp = runif(1, -5,5),
                             phi.days = runif(1, -5,5),
-                            #p.temp = runif(1, -5,5),
                             phi.pcp = runif(1, -5,5),
-                            #p.pcp = runif(1, -5,5),
                             phi.pen = runif(length(unique(pen_aa)), 0, 1), 
-                            #p.pen = array(runif(length(unique(pen_aa))*16, 0,1),dim=c(24,16)), 
                             p.pen = runif(length(unique(pen_aa)), 0,1), 
                             beta.m = runif (2, 0, 1),
                             sigma.phi = runif(1, 0, 2), 
@@ -338,19 +330,14 @@ aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa),
                             sigma.phi.pen= runif(1, 0, 2))}
 
 ao.inits <- function(){list(z = cjs.init.z(ao_CH,f_ao), 
-                            #phi.group = rnorm(4), 
-                            #p.group = rnorm(4), 
                             phi.bl = runif(length(unique(block_ao)), 0, 1), 
-                            #p.bl = array(runif(64, 0, 1),dim=c(4,16)), 
                             p.bl = runif(length(unique(block_ao)), 0, 1), 
                             phi.mass = runif(1, -5, 5),
                             phi.temp = runif(1, -5,5),
                             p.temp = runif(1, -5,5),
                             phi.days = runif(1, -5,5),
                             phi.pcp = runif(1, -5,5),
-                            #p.pcp = runif(1, -5,5),
                             phi.pen = runif(length(unique(pen_ao)), 0, 1), 
-                            #p.pen = array(runif(length(unique(pen_ao))*16, 0,1),dim=c(24,16)), 
                             p.pen = runif(length(unique(pen_ao)), 0,1), 
                             beta.m = runif (2, 0, 1),
                             sigma.phi = runif(1, 0, 2), 
@@ -539,6 +526,11 @@ print(aa_final_fit)
 saveRDS(aa_final_fit,'Results/aa_finalmod_2g.rds')
 aa_final_fit<-readRDS("Results/aa_finalmod_2g.rds")
 plot(aa_final_fit)
+
+#run 2group_graphs.R to get 2-group plots
+
+# Old A. annulatum graphs with 4 groups -----------------------------------
+
 
 #median phi across all groups
 # aa_phi_med<-median(aa_final_fit$sims.list$phi.group)
@@ -843,6 +835,9 @@ abline(v=0,col="red")
 mtext(line=-2,side=3,text = paste("f =",pL3J1.L3J3_f,sep=" "),adj=0.9)
 dev.off()
 
+
+# A. opacum final model ---------------------------------------------------
+
 sink("amop_final.jags")
 cat("
   model {
@@ -997,6 +992,11 @@ saveRDS(ao_final_fit,"Results/ao_finalmod_2g.rds")
 ao_final_fit<-readRDS("Results/ao_final_fit.rds")
 print(ao_final_fit)
 plot(ao_final_fit)
+
+
+#run 2group_graphs.R to get 2-group plots
+# Old A. opacum 4-group plots ---------------------------------------------------------
+
 
 # #median phi across all groups
 # ao_phi_med<-median(ao_final_fit$sims.list$phi.group)
