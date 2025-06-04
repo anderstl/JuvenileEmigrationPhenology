@@ -36,17 +36,18 @@ for(i in 1:dim(aa_recaps)[1]) {
   aa_recaps$Re.Micro[i] <- unlist(strsplit(aa_recaps$Recap_Loc[i], ","))[3]
 }
 
-#format dates
-aa_recaps$DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Recap_Date),"%m/%d/%Y"),"%j"))
-aa_recaps$DOY_adj <- ifelse(aa_recaps$DOY >= doy.adj, yes=aa_recaps$DOY-(doy.adj-1), no=aa_recaps$DOY+(365-doy.adj+1))
-aa_recaps$DOY_adj[aa_recaps$Recap_Date=="7/6/2019"]<-365+aa_recaps$DOY_adj[aa_recaps$Recap_Date=="7/6/2019"] #adjust one value that spanned years
-aa_recaps$Rel.DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Release),"%m/%d/%Y"),"%j"))
-aa_recaps$Rel.DOY_adj <- ifelse(aa_recaps$Rel.DOY >= doy.adj, yes=aa_recaps$Rel.DOY-(doy.adj-1), no=recaps$Rel.DOY+(365-doy.adj+1))
+#format dates for recapture events
+aa_recaps$Recap_DOY <- as.numeric(format(as.Date(as.character(aa_recaps$Recap_Date),"%m/%d/%Y"),"%j"))
+aa_recaps$Recap_DOY_adj <- ifelse(aa_recaps$Recap_DOY >= doy.adj, yes=aa_recaps$Recap_DOY-(doy.adj-1), no=aa_recaps$Recap_DOY+(365-doy.adj+1))
+aa_recaps$Recap_DOY_adj[aa_recaps$Recap_Date=="7/6/2019"]<-365+aa_recaps$Recap_DOY_adj[aa_recaps$Recap_Date=="7/6/2019"] #adjust one value that spanned years
+
 aa_recaps$Recap_Loc <- as.character(aa_recaps$Recap_Loc)
 
+#format dates for release events
 aa_assign$Release_DOY <- as.numeric(format(as.Date(as.character(aa_assign$Release_Date), "%Y-%m-%d"),"%j"))
-aa_assign$DOY_adj <- ifelse(aa_assign$Release_DOY >= doy.adj, yes=aa_assign$Release_DOY-(doy.adj-1), no=aa_assign$Release_DOY+(365-doy.adj+1))
+aa_assign$Release_DOY_adj <- ifelse(aa_assign$Release_DOY >= doy.adj, yes=aa_assign$Release_DOY-(doy.adj-1), no=aa_assign$Release_DOY+(365-doy.adj+1))
 
+#format date of metamorphosis and date of tagging
 aa_tagged$Meta.DOY <- as.numeric(format(as.Date(as.character(aa_tagged$Meta.Date), "%Y-%m-%d"),"%j"))
 aa_tagged$Meta.DOY_adj <- ifelse(aa_tagged$Meta.DOY >= doy.adj, yes=aa_tagged$Meta.DOY-(doy.adj-1), no=aa_tagged$Meta.DOY+(365-doy.adj+1))
 aa_tagged$Tag.DOY <- as.numeric(format(as.Date(as.character(aa_tagged$Tag.Date), "%Y-%m-%d"),"%j"))
@@ -165,7 +166,7 @@ m_aa[u_aa]<-2
 #The last interval is then between the last and second to last events)
 interval_aa<-aa_recaps%>%
   group_by(as.factor(Period))%>%
-  dplyr::summarise(min.int=min(DOY_adj,na.rm=T),max.int=max(DOY_adj,na.rm=T))
+  dplyr::summarise(min.int=min(Recap_DOY_adj,na.rm=T),max.int=max(Recap_DOY_adj,na.rm=T))
 
 interval_aa$days<-c(rep(NA,length=nrow(interval_aa)))
 interval_aa$days[1]<-14
@@ -177,13 +178,15 @@ interval_aa$int<-interval_aa$days/mean(interval_aa$days)
 
 # Format AA predictor data ---------------------------------------------------
 
-#define groups, blocks and pens
-aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L1J1", "J1", aa_ch.pa$Treatment) #Create juvenile-only treatment factor
-aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L3J1", "J1", aa_ch.pa$Treatment2)
-aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L3J3", "J3", aa_ch.pa$Treatment2)
-aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L1J3", "J3", aa_ch.pa$Treatment2)
-group2_aa<-as.numeric(as.factor(aa_ch.pa$Treatment2))
+#define treatments
+# aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L1J1", "J1", aa_ch.pa$Treatment) #Create juvenile-only treatment factor
+# aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L3J1", "J1", aa_ch.pa$Treatment2)
+# aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L3J3", "J3", aa_ch.pa$Treatment2)
+# aa_ch.pa$Treatment2<-ifelse(aa_ch.pa$Treatment=="L1J3", "J3", aa_ch.pa$Treatment2)
+# group2_aa<-as.numeric(as.factor(aa_ch.pa$Treatment2))
 #group_aa<-as.numeric(as.factor(aa_ch.pa$Treatment)) # 4 group predictor variable
+aa_ch.pa<-transform(aa_ch.pa, LarvalTrt = substr(Treatment, 1, 2), JuvTrt = substr(Treatment, 3, 4),remove=F)
+group2_aa<-as.numeric(as.factor(aa_ch.pa$JuvTrt))
 
 #get pen, block and release date as vectors
 block_aa<-as.numeric(aa_ch.pa$Block)
@@ -262,8 +265,8 @@ ao_recaps<-ao_recaps%>%
   filter(!grepl("Arianne",Notes))%>% #arianne's animals
   filter(!(Period%in%c("R1","R2","R3")))%>% #release periods
   filter(PIT_Tag!="x0992")%>% #tag from last year
-  mutate(DOY = as.numeric(format(as.Date(as.character(Recap_Date),"%Y-%m-%d"),"%j")),
-         DOY_adj = ifelse(DOY >= DOY.adj, yes=DOY-(DOY.adj-1), no=DOY+(365-DOY.adj+1)),
+  mutate(Recap_DOY = as.numeric(format(as.Date(as.character(Recap_Date),"%Y-%m-%d"),"%j")),
+         Recap_DOY_adj = ifelse(Recap_DOY >= DOY.adj, yes=Recap_DOY-(DOY.adj-1), no=Recap_DOY+(365-DOY.adj+1)),
          Rel.DOY = as.numeric(format(as.Date(as.character(Release),"%Y-%m-%d"),"%j")),
          Rel.DOY_adj = ifelse(Rel.DOY >= DOY.adj, yes=Rel.DOY-(DOY.adj-1), no=Rel.DOY+(365-DOY.adj+1)),
          Recap_Loc = as.character(Recap_Loc),
@@ -276,47 +279,45 @@ ao_recaps<-ao_recaps%>%
          Pre.Alive = (Moved + Visual + Burr_Vis),
          Pre.Alive = ifelse(Pre.Alive >= 1, yes=1, no=0))
 ao_recaps<-ao_recaps%>%
-  mutate(DOY_adj1=if_else(Recap_Date>"2020-06-06",DOY_adj+365,DOY_adj))
+  mutate(Recap_DOY_adj=if_else(Recap_Date>"2020-06-06",Recap_DOY_adj+365,Recap_DOY_adj))
 
 ao_penID<-ao_penID%>%
   mutate(Days.Held=yday(ao_penID$Release.Date)-yday(ao_penID$Meta.Date))%>%
   select("PIT_Tag","Species","Juv.Pen","Juv.Treat","Meta.Mass.g", "Tag.Mass","Rel.Cohort","Days.Held")%>%
   mutate(Rel.Block = sapply(strsplit(Juv.Pen, ","), function(x) x[1]),
          Rel.Pen = sapply(strsplit(Juv.Pen, ","), function(x) x[2]))%>%
-  mutate(across(where(is.character), as.factor))
-
-#define treatments
-ao_penID$Treatment2<-ifelse(ao_penID$Juv.Treat=="L1-J1", "J1", ao_penID$Juv.Treat) #Create juvenile-only treatment factor
-ao_penID$Treatment2<-ifelse(ao_penID$Juv.Treat=="L3-J1", "J1", ao_penID$Treatment2)
-ao_penID$Treatment2<-ifelse(ao_penID$Juv.Treat=="L3-J3", "J3", ao_penID$Treatment2)
-ao_penID$Treatment2<-ifelse(ao_penID$Juv.Treat=="L1-J3", "J3", ao_penID$Treatment2)
+  mutate(across(where(is.character), as.factor))%>%
+  separate(Juv.Treat,sep = '-',into=c('LarvTrt','JuvTrt'),remove=F)
 
 ao_df <- merge(ao_recaps, ao_penID, by=c("PIT_Tag"),all.x=T)
-# df<-df%>%
-#   mutate(Species=Species.y)%>%
-#   select(!c(Species.x,Species.y))
 
 ao_df<- ao_df%>%
   filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))
+ao_df<-ao_df%>%
+  separate(Juv.Treat,sep = '-',into=c('LarvTrt','JuvTrt'),remove=F)
 
 #metamorph sizes used in terrestrial pens
-ao_mass<-ao_penID%>%filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))%>%
-  group_by(Juv.Treat)%>%
+ao_mass<-ao_penID%>%
+  filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))%>%
+  separate(Juv.Treat,sep = '-',into=c('LarvTrt','JuvTrt'),remove=F)%>%
+  group_by(JuvTrt)%>%
   summarise(meanMass=mean(Meta.Mass.g,na.rm=T),
             sdMass=sd(Meta.Mass.g,na.rm=T),
             minMass=min(Meta.Mass.g),
             maxMass=max(Meta.Mass.g))
 ao.mass.pl<-ao_penID%>%
-  filter(as.factor(Treatment2)%in%c("J1","J3"))%>%
-  ggplot(aes(Treatment2,Meta.Mass.g))+
+  filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))%>%
+  separate(Juv.Treat,sep = '-',into=c('LarvTrt','JuvTrt'),remove=F)%>%
+  ggplot(aes(JuvTrt,Meta.Mass.g))+
   geom_boxplot()+
   geom_jitter(color="gray",width = 0.2,shape=1)+
   theme_classic()+
   labs(y="Metamorph Mass (g)",x="Phenology Treatment")
 
 ao.daysheld.pl<-ao_penID%>%
-  filter(as.factor(Treatment2)%in%c("J1","J3"))%>%
-  ggplot(aes(Treatment2,Days.Held))+
+  filter(as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))%>%
+  separate(Juv.Treat,sep = '-',into=c('LarvTrt','JuvTrt'),remove=F)%>%
+  ggplot(aes(JuvTrt,Days.Held))+
   geom_boxplot()+
   geom_jitter(color="gray",width = 0.2,shape=1)+
   theme_classic()+
@@ -325,7 +326,7 @@ ao.daysheld.pl<-ao_penID%>%
 #Build capture history matrix
 ag.recaps<-ao_df%>%
   mutate(Period=as.numeric(as.character(Period)))%>%
-  group_by(PIT_Tag, Juv.Treat,Rel.Block,Rel.Pen,Period, Meta.Mass.g, Rel.Cohort)%>%
+  group_by(PIT_Tag, JuvTrt,Rel.Block,Rel.Pen,Period, Meta.Mass.g, Rel.Cohort)%>%
   summarise(Nobs=sum(Pre.Alive))%>%
   mutate(Pre.Alive=Nobs)%>%
   mutate(Pre.Alive=if_else(Pre.Alive>=1,1,Pre.Alive))%>%
@@ -339,8 +340,7 @@ ao_ch.pa<-ag.recaps%>%
   relocate(`R1`, .after = Rel.Pen)
 
 #recombine with release info
-ao_penID<-filter(ao_penID,as.factor(Juv.Treat)%in%c("L3-J1","L3-J3","L1-J1","L1-J3"))
-ao_wide<-merge(ao_penID[,c("PIT_Tag", "Juv.Treat", "Rel.Block", "Rel.Pen","Meta.Mass.g", "Rel.Cohort","Days.Held")],ao_ch.pa,all=T)
+ao_wide<-merge(ao_penID[,c("PIT_Tag", "JuvTrt", "Rel.Block", "Rel.Pen","Meta.Mass.g", "Rel.Cohort","Days.Held")],ao_ch.pa,all=T)
 
 ao_wide<-ao_wide%>%
   mutate(R1=replace_na(R1,1))%>%
@@ -425,7 +425,7 @@ for (i in 1:length(ao_wide$Meta.Mass)) {
 interval_ao<-ao_recaps%>%
   mutate(Period=as.numeric(as.character(Period)))%>%
   group_by(Period)%>%
-  dplyr::summarise(min.int=min(DOY_adj1,na.rm=T),max.int=max(DOY_adj1,na.rm=T))
+  dplyr::summarise(min.int=min(Recap_DOY_adj,na.rm=T),max.int=max(Recap_DOY_adj,na.rm=T))
 interval_ao$days[1]<-NA
 interval_ao$days<-c(rep(NA,length=nrow(interval_ao)))
 for(i in 1:(nrow(interval_ao)-1)){
@@ -435,13 +435,13 @@ interval_ao$days[1]<-14
 interval_ao$int<-interval_ao$days/mean(interval_ao$days,na.rm=T)
 
 # Format AO predictor data ---------------------------------------------------
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J1", "J1", ao_wide$Juv.Treat) #Create juvenile-only treatment factor
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J1", "J1", ao_wide$Treatment2)
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J3", "J3", ao_wide$Treatment2)
-ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J3", "J3", ao_wide$Treatment2)
+# ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J1", "J1", ao_wide$Juv.Treat) #Create juvenile-only treatment factor
+# ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J1", "J1", ao_wide$Treatment2)
+# ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L3-J3", "J3", ao_wide$Treatment2)
+# ao_wide$Treatment2<-ifelse(ao_wide$Juv.Treat=="L1-J3", "J3", ao_wide$Treatment2)
 
 #group_ao<-as.numeric(ao_wide$Juv.Treat) #for 4-group analysis
-group2_ao<-as.numeric(as.factor(ao_wide$Treatment2))
+group2_ao<-as.numeric(as.factor(ao_wide$JuvTrt))
 block_ao<-as.numeric(ao_wide$Rel.Block)
 pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
 rel_ao<-as.numeric(ao_wide$Rel.Cohort)

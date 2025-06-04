@@ -1,16 +1,12 @@
 #questions: 
-#include known state? 
-#how to include size/mass/growth? 
-#keep block/pen effects? 
-#model convergence
-#predictors on both phi and p (e.g. treatment effects)
-#model fit? 
-#re-do in NIMBLE?
-#time-varying vs not
+#how to include size/mass/growth? do simple at first
+#keep block/pen effects? Maybe no- see if parameter estimates differ for phi and p
+#predictors on both phi and p (e.g. treatment effects)- drop on recapture
+#time-varying vs not: maybe drop recapture predictors, make time constant
 
 #Structure: time-varying phi and p (with time treated as random effect), with block and pen effects
 
-#Steps to limit model complexity
+#Steps to limit model complexity done in original manuscript
 #1: test for precip and temp effects on p; keep only if significant
 #2: test for mass, precip and temp effects on phi; keep only if significant
 #3: add in treatment effects on both phi and p. 
@@ -51,7 +47,7 @@ ao.data <- list(y = ao_CH, int=interval_ao$int,
                 m=m_ao)
 
 # MCMC settings
-ni <- 50000
+ni <- 20000
 nt <- 10
 nb <- 5000
 nc <- 3
@@ -67,8 +63,8 @@ cat("
     ## Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (1/(1+exp(-(phi.bl[block[i]] + phi.pen[pen[i]] + epsilon.phi[t]))))^int[t] #phi.group[group[i]]  + 
-        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + p.temp*temp[t] + p.pcp*precip[t] + p.bl[block[i]] + p.pen[pen[i]] + epsilon.p[t]))) #p.group[group[i]] + 
+        phi[i,t] <- (1/(1+exp(-(phi.pen[pen[i]] + epsilon.phi[t]))))^int[t]
+        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + p.temp*temp[t] + p.pcp*precip[t] + p.pen[pen[i]] + epsilon.p[t]))) #p.group[group[i]] + 
       } #t
     } #i
     
@@ -187,9 +183,10 @@ ao.inits <- function(){list(z = cjs.init.z(ao_CH,f_ao),
   
 # Parameters monitored
 parameters.p <- c( "p.pcp","p.temp","beta.m",
-                   "p.bl","p.pen","phi.bl","phi.pen") 
+                   "p.bl","p.pen","phi.pen")
+                   #"phi.bl") 
 
-# Call JAGS from R (JRT 36 min)
+# Call JAGS from R 
 aa_covp_fit <- jags(aa.data, parallel=TRUE, 
                                  aa.inits, 
                                  parameters.p, 
@@ -517,7 +514,7 @@ aa.inits <- function(){list(z = cjs.init.z(aa_CH,f_aa),
 aa_final_fit <- jags(aa.data, parallel=TRUE, 
                       aa.inits, 
                       parameters.aa, 
-                      "aman_final.jags", 
+                      "aman_final2.jags", 
                       n.chains = nc, 
                       n.thin = nt, 
                       n.iter = ni, 
