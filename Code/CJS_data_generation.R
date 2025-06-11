@@ -1,14 +1,12 @@
 #Data Generation for CJS Models
 
-if(!require(tidyr)) install.packages('tidyr'); library("tidyr")
-if(!require(readxl)) install.packages('readxl'); library("readxl")
-if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
-if(!require(dplyr)) install.packages('dplyr'); library("dplyr")
-if(!require(viridis)) install.packages('viridis'); library("viridis")
+library("tidyr")
+library("readxl")
+library("ggplot2")
+library("dplyr")
+library("viridis")
 library(lattice)
 library(coda)
-library(jagsUI)
-library(mcmcplots)
 library(lubridate)
 
 ## A. annulatum --------------------------------
@@ -235,7 +233,7 @@ for (i in 1:length(aa_ch.pa$Meta.Mass)) {
   stdmass_aa[i] <- (aa_ch.pa$Meta.Mass[i]-mean(aa_ch.pa$Meta.Mass[]))/sd(aa_ch.pa$Meta.Mass[])
 }
 
-#define days held covariate
+#define covariate for days held in the lab between metamorphosis and release 
 aa_ch.pa$Days.Held[is.na(aa_ch.pa$Days.Held)]<-mean(aa_ch.pa$Days.Held,na.rm=T)
 stddaysheld_aa<-rep(NA,length(aa_ch.pa$Days.Held))
 
@@ -446,7 +444,7 @@ block_ao<-as.numeric(ao_wide$Rel.Block)
 pen_ao<-as.numeric(as.factor(paste(ao_wide$Rel.Block,ao_wide$Rel.Pen,sep="")))
 rel_ao<-as.numeric(ao_wide$Rel.Cohort)
 
-#define days held covariate
+#define covariate for days held in the lab between metamorphosis and release 
 ao_wide$Days.Held[is.na(ao_wide$Days.Held)]<-mean(ao_wide$Days.Held,na.rm=T)
 stddaysheld_ao<-rep(NA,length(ao_wide$Days.Held))
 

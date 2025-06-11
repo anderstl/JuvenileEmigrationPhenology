@@ -1,19 +1,20 @@
-#questions: 
-#how to include size/mass/growth? do simple at first
-#keep block/pen effects? Maybe no- see if parameter estimates differ for phi and p
-#predictors on both phi and p (e.g. treatment effects)- drop on recapture
-#time-varying vs not: maybe drop recapture predictors, make time constant
-
-#Structure: time-varying phi and p (with time treated as random effect), with block and pen effects
-
-#Steps to limit model complexity done in original manuscript
+# Analytical process to limit model complexity done in original manuscript
 #1: test for precip and temp effects on p; keep only if significant
 #2: test for mass, precip and temp effects on phi; keep only if significant
 #3: add in treatment effects on both phi and p. 
+#Structure in the above included time-varying phi and p (with time treated as random effect), with block and pen effects
 
-#run data generating code
+#Steps take to further limit model complexity in revised manuscript
+#1. eliminate block effects
+#2. drop predictors of recapture (make time-constant)
+
+#### run data generating code ####
+#produces captures histories for both species (annulatum = aa_ch; opacum = ao_ch), as well as other experimental info
+ # on things like blocks (block_aa & block_ao), pens (pen_aa & pen_ao), standarized weather data (aa_stdprecip, aa_stdtempc, ao_stdtempC, ao_stdprecip)
+ # size at metamorphosis (stdmass_aa, stdmass_ao) and treatment effects (group2_aa, group2_ao), and trap effect (m_aa, m_ao)
 source('Code/CJS_data_generation.R')
 
+#### Load Data ####
 # Bundle A. annulatum data
 aa.data <- list(y = aa_CH, int=interval_aa$int, 
                 f = f_aa, nind = dim(aa_CH)[1], 
@@ -46,6 +47,9 @@ ao.data <- list(y = ao_CH, int=interval_ao$int,
                 group=group2_ao, 
                 m=m_ao)
 
+#### Covariate effects on p ####
+
+#covariates include temp, precip, and pen effects (block effects removed)
 # MCMC settings
 ni <- 20000
 nt <- 10
@@ -53,7 +57,6 @@ nb <- 5000
 nc <- 3
 
 library(jagsUI)
-#covariate effects on p
 
 # Specify model in BUGS language
 sink("coveffsp.jags")
@@ -195,7 +198,7 @@ aa_covp_fit <- jags(aa.data, parallel=TRUE,
                                  n.thin = nt, 
                                  n.iter = ni, 
                                  n.burnin = nb)
-print(aa_covp_fit)
+print(aa_covp_fit) #nothing significant
 
 ao_covp_fit <- jags(ao.data, parallel=TRUE, 
                    ao.inits, 
@@ -205,9 +208,13 @@ ao_covp_fit <- jags(ao.data, parallel=TRUE,
                    n.thin = nt, 
                    n.iter = ni, 
                    n.burnin = nb)
-print(ao_covp_fit)
+print(ao_covp_fit) #temp significant for recapture
 
-#covariate effects on phi
+
+#### covariate effects on phi ####
+
+#covariates include treatment, mass at metamorphosis, days held, temp, precip, and pen effects (block effects removed)
+
 sink("coveffsphi.jags")
 cat("
   model {
@@ -215,8 +222,8 @@ cat("
     ## Priors and constraints
     for (i in 1:nind){
       for (t in f[i]:(n.occasions-1)){
-        phi[i,t] <- (1/(1+exp(-(phi.mass*mass[i]+ phi.temp*temp[t] + phi.pcp*precip[t] + phi.days*daysheld[t] + phi.bl[block[i]] + phi.pen[pen[i]] + epsilon.phi[t]))))^int[t] #phi.group[group[i]]  + 
-        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + p.bl[block[i]] + p.pen[pen[i]] + epsilon.p[t]))) #p.group[group[i]] + 
+        phi[i,t] <- (1/(1+exp(-(phi.mass*mass[i]+ phi.temp*temp[t] + phi.pcp*precip[t] + phi.days*daysheld[t] + phi.pen[pen[i]] + epsilon.phi[t]))))^int[t] #phi.group[group[i]]  + 
+        p[i,t] <- 1/(1+exp(-(beta.m[m[i,t]] + p.pen[pen[i]] + epsilon.p[t]))) #p.group[group[i]] + 
       } #t
     } #i
     

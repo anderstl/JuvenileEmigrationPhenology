@@ -1,4 +1,6 @@
-#growth isn't right- needs to be current mass/days elapsed since last mass (or start of exp)
+#To Incorporate yet
+#1. mass change since last capture (or mass at metamorphosis)
+#2. add mass at metamorphosis (or tagging mass) as additional growth point
 
 #annulatum growth
 interval_aa$Period<-as.numeric(interval_aa$`as.factor(Period)`)
@@ -9,24 +11,41 @@ aa_growth<-merge(aa_growth,aa_assign[,c('PIT_Tag','JuvTrt')],by="PIT_Tag")
 
 aa_growth<-aa_growth%>%
   filter(Notes != "Arianne Salamander")%>%
-  select(Period,Species,PIT_Tag,Pen_ID,JuvTrt,SVL_mm,TL_mm,Mass_g,Rel.DOY,Recap_DOY,Recap_DOY_adj,Rel.DOY_adj,days)%>%
+  select(Period,Species,PIT_Tag,Pen_ID,JuvTrt,SVL_mm,TL_mm,Mass_g,Recap_DOY,Recap_DOY_adj,days)%>%
   filter(!(is.na(SVL_mm) & is.na(Mass_g)))
 aa_growth<-aa_growth%>%
   mutate(Growth_g=Mass_g/Recap_DOY_adj,
-         Growth_mm=SVL_mm/Recap_DOY_adj) #calculates growth as mass or svl divided by elapsed days since start of experiment
-  
-ggplot(aa_growth,aes(Growth_g,fill=as.factor(Period)))+
-  geom_histogram()+
-  facet_wrap(~Period)
+         Growth_mm=SVL_mm/Recap_DOY_adj) #calculates growth as mass or svl divided by elapsed days since start of experiment but doesn't include size at metamorphosis so not quite right
 
-ggplot(aa_growth,aes(as.factor(Period),Mass_g,fill = JuvTrt))+
+  
+aamass.trt.pl<-ggplot(aa_growth,aes(as.factor(Period),Mass_g,fill=JuvTrt))+
   geom_boxplot()+
-  labs(x="Recapture Period")+
-  scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))
-ggplot(aa_growth,aes(as.factor(Period),SVL_mm,fill=JuvTrt))+
+  scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))+
+  theme_classic()+
+  labs(x= 'Recapture Period',y="Mass (g)")
+
+aasvl_trt.pl<-ggplot(aa_growth,aes(as.factor(Period),SVL_mm,fill=JuvTrt))+
   geom_boxplot()+
-  labs(x="Recapture Period")+
-  scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))
+  scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))+
+  theme_classic()+
+  labs(x= 'Recapture Period',y="SVL (mm)")
+
+aa_mass.pl<-ggplot(aa_growth,aes(Recap_DOY_adj,Mass_g,group=PIT_Tag,color=JuvTrt))+
+  geom_point()+
+  geom_line()+
+  theme_classic()+
+  labs(x= 'Day of Experiment',y="Mass (g)")
+
+aa_svl.pl<-ggplot(aa_growth,aes(Recap_DOY_adj,SVL_mm,group=PIT_Tag,color=JuvTrt))+
+  geom_point()+
+  geom_line()+
+  theme_classic()+
+  #geom_text()+
+  labs(x= 'Day of Experiment',y="SVL (mm)")
+
+png('growth_aa.png',res=600,height=7,width=9,units="in")
+plot_grid(aasvl_trt.pl,aamass.trt.pl,aa_svl.pl,aa_mass.pl,ncol=2)
+dev.off()
 
 #Opacum growth
 #make data frame containing only captures with known size/mass values
@@ -51,30 +70,44 @@ ggplot(ao_growth,aes(Growth_g,fill=JuvTrt))+
   facet_wrap(~Period,scales="free")+
   theme_bw()
 
-ggplot(ao_growth,aes(Period,Mass_g,fill=JuvTrt))+
+aomass.trt.pl<-ggplot(ao_growth,aes(Period,Mass_g,fill=JuvTrt))+
   geom_boxplot()+
   scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))+
   theme_classic()+
   labs(x= 'Recapture Period',y="Mass (g)")
 
-ggplot(ao_growth,aes(Period,SVL_mm,fill=JuvTrt))+
+aosvl_trt.pl<-ggplot(ao_growth,aes(Period,SVL_mm,fill=JuvTrt))+
   geom_boxplot()+
   scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))+
   theme_classic()+
   labs(x= 'Recapture Period',y="SVL (mm)")
 
-ggplot(ao_growth,aes(Recap_DOY_adj,Mass_g,group=PIT_Tag,color=JuvTrt))+
+ao_growg.pl<-ggplot(ao_growth,aes(Period,Growth_g,group=PIT_Tag,color=JuvTrt))+
+  geom_boxplot()+
+  scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))+
+  theme_classic()+
+  labs(x= 'Day of Experiment',y="Growth (g/d)")
+
+ao_growmm.pl<-ggplot(ao_growth,aes(Period,Growth_mm,group=PIT_Tag,color=JuvTrt))+
+  geom_boxplot()+
+  scale_x_discrete(limits=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"))+
+  theme_classic()+
+  labs(x= 'Day of Experiment',y="Growth (mm/d)")
+
+ao_mass.pl<-ggplot(ao_growth,aes(Recap_DOY_adj,Mass_g,group=PIT_Tag,color=JuvTrt))+
   geom_point()+
   geom_line()+
   theme_classic()+
   labs(x= 'Day of Experiment',y="Mass (g)")
 
-ggplot(ao_growth,aes(Recap_DOY_adj,SVL_mm,group=PIT_Tag,color=JuvTrt))+
+ao_svl.pl<-ggplot(ao_growth,aes(Recap_DOY_adj,SVL_mm,group=PIT_Tag,color=JuvTrt))+
   geom_point()+
   geom_line()+
   theme_classic()+
-  labs(x= 'Day of Experiment',y="SVL_mm")
+  #geom_text()+
+  labs(x= 'Day of Experiment',y="SVL (mm)")
 
-ao_growth_wide<-ao_growth%>%
-  select(Period,PIT_Tag,Mass_g)%>%
-  pivot_wider(names_from = Period,values_from=Mass_g,values_fill=NA,names_sort=TRUE,names_prefix="R")
+library(cowplot)
+png('growth_ao.png',res=600,height=7,width=9,units="in")
+plot_grid(aosvl_trt.pl,aomass.trt.pl,ao_svl.pl,ao_mass.pl,ncol=2)
+dev.off()
